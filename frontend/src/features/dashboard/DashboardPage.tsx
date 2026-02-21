@@ -1,4 +1,4 @@
-import { Grid2 as Grid, Typography, Card, CardContent, Box, Chip, CircularProgress } from '@mui/material';
+import { Grid, Typography, Card, CardContent, Box, Chip, CircularProgress } from '@mui/material';
 import {
   Warning as WarningIcon,
   Error as ErrorIcon,
