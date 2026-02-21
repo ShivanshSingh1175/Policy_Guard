@@ -1,0 +1,9 @@
+@echo off
+REM Frontend development server runner for Windows
+
+echo Starting PolicyGuard Frontend...
+echo Installing dependencies...
+call flutter pub get
+
+echo Running Flutter web app...
+call flutter run -d chrome --web-port=3000
