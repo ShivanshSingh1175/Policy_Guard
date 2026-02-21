@@ -13,10 +13,9 @@ class Settings(BaseSettings):
     MONGO_URI: str = "mongodb://localhost:27017"
     MONGO_DB_NAME: str = "policyguard"
     
-    # LLM Configuration
-    LLM_ENDPOINT: str = "http://localhost:8000/generate"
-    LLM_API_KEY: Optional[str] = None
-    LLM_MODEL: str = "gpt-4"
+    # LLM Configuration (Google Gemini)
+    GEMINI_API_KEY: str = "AIzaSyCt0mvrqZyqMbWgv1_ce0sIUyB-IjwYWNA"
+    LLM_MODEL: str = "gemini-pro"
     LLM_TEMPERATURE: float = 0.7
     
     # Application Configuration
