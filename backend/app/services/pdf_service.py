@@ -1,7 +1,7 @@
 """
 PDF text extraction service using PyMuPDF
 """
-import pymupdf
+import fitz  # PyMuPDF
 
 
 def extract_text_from_pdf(file_content: bytes) -> str:
@@ -19,7 +19,7 @@ def extract_text_from_pdf(file_content: bytes) -> str:
     """
     try:
         # Open PDF from bytes
-        doc = pymupdf.open(stream=file_content, filetype="pdf")
+        doc = fitz.open(stream=file_content, filetype="pdf")
         
         # Extract text from all pages
         text_parts = []
