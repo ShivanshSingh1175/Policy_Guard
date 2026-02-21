@@ -7,45 +7,52 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from datetime import datetime, timedelta
 
 from app.db import get_database
+from app.models.user import TokenData
+from app.routes.auth import get_current_user
 
 router = APIRouter()
 
 
 @router.get("/summary")
-async def get_dashboard_summary(db: AsyncIOMotorDatabase = Depends(get_database)):
+async def get_dashboard_summary(
+    current_user: TokenData = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
     """
-    Get dashboard summary with key metrics
+    Get dashboard summary with key metrics (scoped to company)
     """
+    company_filter = {"company_id": current_user.company_id}
+    
     # Count total violations
-    total_violations = await db.violations.count_documents({})
+    total_violations = await db.violations.count_documents(company_filter)
     
     # Count open violations
-    open_violations = await db.violations.count_documents({"status": "OPEN"})
+    open_violations = await db.violations.count_documents({**company_filter, "status": "OPEN"})
     
     # Count critical violations
-    critical_violations = await db.violations.count_documents({"severity": "CRITICAL"})
+    critical_violations = await db.violations.count_documents({**company_filter, "severity": "CRITICAL"})
     
     # Count enabled rules
-    enabled_rules = await db.rules.count_documents({"enabled": True})
+    enabled_rules = await db.rules.count_documents({**company_filter, "enabled": True})
     
     # Get last scan time
     last_scan = await db.scan_runs.find_one(
-        {},
+        company_filter,
         sort=[("started_at", -1)]
     )
     last_scan_time = last_scan["started_at"].isoformat() if last_scan else None
     
     # Count violations by severity
     violations_by_severity = {
-        "LOW": await db.violations.count_documents({"severity": "LOW"}),
-        "MEDIUM": await db.violations.count_documents({"severity": "MEDIUM"}),
-        "HIGH": await db.violations.count_documents({"severity": "HIGH"}),
-        "CRITICAL": await db.violations.count_documents({"severity": "CRITICAL"}),
+        "LOW": await db.violations.count_documents({**company_filter, "severity": "LOW"}),
+        "MEDIUM": await db.violations.count_documents({**company_filter, "severity": "MEDIUM"}),
+        "HIGH": await db.violations.count_documents({**company_filter, "severity": "HIGH"}),
+        "CRITICAL": await db.violations.count_documents({**company_filter, "severity": "CRITICAL"}),
     }
     
     # Get recent violations (last 10)
     recent_violations_cursor = db.violations.find(
-        {},
+        company_filter,
         sort=[("created_at", -1)],
         limit=10
     )

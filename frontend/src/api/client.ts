@@ -9,14 +9,13 @@ export const apiClient = axios.create({
   },
 });
 
-// Request interceptor for adding auth tokens (future)
+// Request interceptor for adding auth tokens
 apiClient.interceptors.request.use(
   (config) => {
-    // TODO: Add auth token when implemented
-    // const token = localStorage.getItem('token');
-    // if (token) {
-    //   config.headers.Authorization = `Bearer ${token}`;
-    // }
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
     return config;
   },
   (error) => {
@@ -29,8 +28,10 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // TODO: Handle unauthorized (redirect to login)
-      console.error('Unauthorized access');
+      // Unauthorized - redirect to login
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
     }
     return Promise.reject(error);
   }

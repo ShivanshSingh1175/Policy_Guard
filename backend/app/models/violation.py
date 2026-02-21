@@ -2,7 +2,7 @@
 Pydantic models for Violation documents
 """
 from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from datetime import datetime
 from enum import Enum
 
@@ -18,6 +18,7 @@ class ViolationStatus(str, Enum):
 class Violation(BaseModel):
     """Model for a violation document"""
     id: str = Field(alias="_id")
+    company_id: str
     scan_run_id: str
     rule_id: str
     rule_name: str
@@ -29,6 +30,7 @@ class Violation(BaseModel):
     reviewer_note: Optional[str] = None
     reviewed_by: Optional[str] = None
     reviewed_at: Optional[datetime] = None
+    remediation_suggestions: Optional[List[Dict[str, Any]]] = None
     created_at: datetime
     
     class Config:

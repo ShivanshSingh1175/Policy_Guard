@@ -44,22 +44,43 @@ export default function PoliciesPage() {
   };
 
   return (
-    <Box>
-      <Typography variant="h4" gutterBottom>
+    <Box sx={{ animation: 'fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1)' }}>
+      <Typography
+        variant="h3"
+        gutterBottom
+        sx={{
+          fontWeight: 800,
+          background: 'linear-gradient(135deg, #2872A1 0%, #3A8BC2 100%)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text',
+          mb: 4,
+        }}
+      >
         Policies & Rules
       </Typography>
 
       <Grid container spacing={3}>
         <Grid item xs={12} md={5}>
-          <Card>
+          <Card
+            sx={{
+              background: 'linear-gradient(135deg, rgba(40, 114, 161, 0.05) 0%, rgba(19, 47, 76, 1) 100%)',
+            }}
+          >
             <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h6">Policies</Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>Policies</Typography>
                 <Button
                   variant="contained"
                   startIcon={<UploadIcon />}
                   component="label"
                   disabled={uploadPolicy.isPending}
+                  sx={{
+                    background: 'linear-gradient(135deg, #2872A1 0%, #3A8BC2 100%)',
+                    '&:hover': {
+                      background: 'linear-gradient(135deg, #1D5A7F 0%, #2872A1 100%)',
+                    },
+                  }}
                 >
                   Upload PDF
                   <input
@@ -89,7 +110,14 @@ export default function PoliciesPage() {
                       sx={{
                         mb: 1,
                         cursor: 'pointer',
-                        bgcolor: selectedPolicyId === policy.id ? 'action.selected' : 'background.paper',
+                        bgcolor: selectedPolicyId === policy.id ? 'rgba(40, 114, 161, 0.2)' : 'background.paper',
+                        border: selectedPolicyId === policy.id ? '2px solid #2872A1' : '1px solid rgba(255, 255, 255, 0.08)',
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                        '&:hover': {
+                          transform: 'translateX(4px)',
+                          borderColor: '#2872A1',
+                          boxShadow: '0px 4px 12px rgba(40, 114, 161, 0.2)',
+                        },
                       }}
                       onClick={() => setSelectedPolicyId(policy.id)}
                     >
@@ -114,9 +142,13 @@ export default function PoliciesPage() {
         </Grid>
 
         <Grid item xs={12} md={7}>
-          <Card>
+          <Card
+            sx={{
+              background: 'linear-gradient(135deg, rgba(40, 114, 161, 0.05) 0%, rgba(19, 47, 76, 1) 100%)',
+            }}
+          >
             <CardContent>
-              <Typography variant="h6" gutterBottom>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
                 Rules
               </Typography>
 
@@ -137,7 +169,21 @@ export default function PoliciesPage() {
                     </thead>
                     <tbody>
                       {rules?.map((rule) => (
-                        <tr key={rule.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                        <tr
+                          key={rule.id}
+                          style={{
+                            borderBottom: '1px solid rgba(255,255,255,0.05)',
+                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = 'rgba(40, 114, 161, 0.1)';
+                            e.currentTarget.style.transform = 'translateX(4px)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                            e.currentTarget.style.transform = 'translateX(0)';
+                          }}
+                        >
                           <td style={{ padding: '12px' }}>
                             <Typography variant="body2">{rule.name}</Typography>
                             <Typography variant="caption" color="text.secondary">

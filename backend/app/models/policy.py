@@ -25,11 +25,13 @@ class PolicyIn(BaseModel):
     name: str = Field(..., min_length=1, max_length=200)
     description: Optional[str] = None
     version: Optional[str] = "1.0"
+    # company_id will be injected from JWT token
 
 
 class PolicyOut(BaseModel):
     """Response model for policy"""
     id: str = Field(alias="_id")
+    company_id: str
     name: str
     description: Optional[str] = None
     version: str
@@ -49,6 +51,7 @@ class PolicyOut(BaseModel):
 class PolicySummary(BaseModel):
     """Lightweight policy summary"""
     id: str = Field(alias="_id")
+    company_id: str
     name: str
     version: str
     text_length: int

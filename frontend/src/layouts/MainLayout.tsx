@@ -14,6 +14,7 @@ import {
   ListItemIcon,
   ListItemText,
   Chip,
+  Button,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -22,16 +23,17 @@ import {
   Scanner as ScannerIcon,
   Warning as WarningIcon,
   Analytics as AnalyticsIcon,
+  Logout as LogoutIcon,
 } from '@mui/icons-material';
 
 const drawerWidth = 240;
 
 const menuItems = [
-  { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
-  { text: 'Policies & Rules', icon: <DescriptionIcon />, path: '/policies' },
-  { text: 'Scans', icon: <ScannerIcon />, path: '/scans' },
-  { text: 'Violations', icon: <WarningIcon />, path: '/violations' },
-  { text: 'Analytics', icon: <AnalyticsIcon />, path: '/analytics' },
+  { text: 'Dashboard', icon: <DashboardIcon />, path: '/app/dashboard' },
+  { text: 'Policies & Rules', icon: <DescriptionIcon />, path: '/app/policies' },
+  { text: 'Scans', icon: <ScannerIcon />, path: '/app/scans' },
+  { text: 'Violations', icon: <WarningIcon />, path: '/app/violations' },
+  { text: 'Analytics', icon: <AnalyticsIcon />, path: '/app/analytics' },
 ];
 
 export default function MainLayout() {
@@ -43,28 +45,79 @@ export default function MainLayout() {
     setMobileOpen(!mobileOpen);
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    navigate('/login');
+  };
+
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+
   const drawer = (
     <div>
-      <Toolbar>
-        <Typography variant="h6" noWrap component="div">
+      <Toolbar
+        sx={{
+          background: 'linear-gradient(135deg, #2872A1 0%, #1D5A7F 100%)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+        }}
+      >
+        <Box
+          sx={{
+            width: 40,
+            height: 40,
+            borderRadius: 2,
+            background: 'rgba(255, 255, 255, 0.2)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backdropFilter: 'blur(10px)',
+          }}
+        >
+          <Typography variant="h6" sx={{ fontWeight: 800, color: 'white' }}>
+            P
+          </Typography>
+        </Box>
+        <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 700, color: 'white' }}>
           PolicyGuard
         </Typography>
       </Toolbar>
-      <Divider />
-      <List>
+      <Divider sx={{ borderColor: 'rgba(40, 114, 161, 0.3)' }} />
+      <List sx={{ px: 1, py: 2 }}>
         {menuItems.map((item) => (
-          <ListItem key={item.text} disablePadding>
+          <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
             <ListItemButton
               selected={location.pathname === item.path}
               onClick={() => {
                 navigate(item.path);
                 setMobileOpen(false);
               }}
+              sx={{
+                borderRadius: 2,
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                '&.Mui-selected': {
+                  backgroundColor: 'rgba(40, 114, 161, 0.2)',
+                  borderLeft: '4px solid #2872A1',
+                  '&:hover': {
+                    backgroundColor: 'rgba(40, 114, 161, 0.3)',
+                  },
+                },
+                '&:hover': {
+                  backgroundColor: 'rgba(40, 114, 161, 0.1)',
+                  transform: 'translateX(4px)',
+                },
+              }}
             >
-              <ListItemIcon sx={{ color: location.pathname === item.path ? 'primary.main' : 'inherit' }}>
+              <ListItemIcon sx={{ color: location.pathname === item.path ? '#2872A1' : 'inherit', minWidth: 40 }}>
                 {item.icon}
               </ListItemIcon>
-              <ListItemText primary={item.text} />
+              <ListItemText
+                primary={item.text}
+                primaryTypographyProps={{
+                  fontWeight: location.pathname === item.path ? 600 : 400,
+                }}
+              />
             </ListItemButton>
           </ListItem>
         ))}
@@ -91,10 +144,32 @@ export default function MainLayout() {
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            PolicyGuard - AI-Powered Compliance Platform
+          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1, fontWeight: 600 }}>
+            {user.company_name || 'Compliance Platform'}
           </Typography>
-          <Chip label="Development" color="warning" size="small" />
+          <Chip
+            label={`${user.name} • ${user.role}`}
+            sx={{
+              mr: 2,
+              backgroundColor: 'rgba(40, 114, 161, 0.2)',
+              color: 'white',
+              fontWeight: 500,
+            }}
+          />
+          <Button
+            color="inherit"
+            startIcon={<LogoutIcon />}
+            onClick={handleLogout}
+            sx={{
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              '&:hover': {
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                transform: 'translateY(-2px)',
+              },
+            }}
+          >
+            Logout
+          </Button>
         </Toolbar>
       </AppBar>
       <Box

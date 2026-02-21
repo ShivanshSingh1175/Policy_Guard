@@ -39,6 +39,7 @@ class RuleScanResult(BaseModel):
 class ScanRun(BaseModel):
     """Model for a scan run document"""
     id: str = Field(alias="_id")
+    company_id: str
     status: ScanStatus
     started_at: datetime
     completed_at: Optional[datetime] = None

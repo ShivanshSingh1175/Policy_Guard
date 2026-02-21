@@ -82,13 +82,32 @@ export default function ViolationsPage() {
   };
 
   return (
-    <Box>
-      <Typography variant="h4" gutterBottom>
+    <Box sx={{ animation: 'fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1)' }}>
+      <Typography
+        variant="h3"
+        gutterBottom
+        sx={{
+          fontWeight: 800,
+          background: 'linear-gradient(135deg, #2872A1 0%, #3A8BC2 100%)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text',
+          mb: 4,
+        }}
+      >
         Violations
       </Typography>
 
-      <Card sx={{ mb: 3 }}>
+      <Card
+        sx={{
+          mb: 3,
+          background: 'linear-gradient(135deg, rgba(40, 114, 161, 0.05) 0%, rgba(19, 47, 76, 1) 100%)',
+        }}
+      >
         <CardContent>
+          <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
+            Filters
+          </Typography>
           <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
             <FormControl sx={{ minWidth: 150 }}>
               <InputLabel>Severity</InputLabel>
@@ -123,7 +142,11 @@ export default function ViolationsPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card
+        sx={{
+          background: 'linear-gradient(135deg, rgba(40, 114, 161, 0.05) 0%, rgba(19, 47, 76, 1) 100%)',
+        }}
+      >
         <CardContent>
           {isLoading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
@@ -144,7 +167,21 @@ export default function ViolationsPage() {
                 </thead>
                 <tbody>
                   {violations?.map((violation) => (
-                    <tr key={violation.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    <tr
+                      key={violation.id}
+                      style={{
+                        borderBottom: '1px solid rgba(255,255,255,0.05)',
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = 'rgba(40, 114, 161, 0.1)';
+                        e.currentTarget.style.transform = 'translateX(4px)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                        e.currentTarget.style.transform = 'translateX(0)';
+                      }}
+                    >
                       <td style={{ padding: '12px' }}>{violation.rule_name}</td>
                       <td style={{ padding: '12px' }}>{violation.document_id}</td>
                       <td style={{ padding: '12px' }}>
@@ -248,6 +285,12 @@ export default function ViolationsPage() {
             onClick={handleUpdateViolation}
             variant="contained"
             disabled={updateViolation.isPending}
+            sx={{
+              background: 'linear-gradient(135deg, #2872A1 0%, #3A8BC2 100%)',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #1D5A7F 0%, #2872A1 100%)',
+              },
+            }}
           >
             {updateViolation.isPending ? 'Saving...' : 'Save'}
           </Button>

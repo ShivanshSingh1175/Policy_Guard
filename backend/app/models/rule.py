@@ -25,11 +25,13 @@ class RuleIn(BaseModel):
     severity: RuleSeverity = RuleSeverity.MEDIUM
     enabled: bool = True
     tags: List[str] = Field(default_factory=list)
+    # company_id will be injected from JWT token
 
 
 class RuleOut(BaseModel):
     """Response model for rule"""
     id: str = Field(alias="_id")
+    company_id: str
     policy_id: str
     name: str
     description: str

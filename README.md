@@ -1,865 +1,534 @@
 # PolicyGuard
 
-**AI-Powered Policy Compliance Platform for Financial Institutions**
+**Multi-Tenant Compliance Co-Pilot for Operational Risk Management**
 
-Built for GDG Hackfest 2.0 - Policy Compliance Track
+PolicyGuard is an AI-powered, multi-tenant compliance platform that transforms static PDF policies into executable monitoring rules, continuously scans transactional data for violations, and provides a complete workflow for remediation, risk scoring, and audit-ready evidence generation.
 
----
-
-## Project Overview
-
-PolicyGuard is an intelligent compliance monitoring system designed to help financial institutions automatically detect and manage policy violations in their transaction data. The platform addresses a critical challenge in the financial services industry: ensuring that thousands of daily transactions comply with complex, evolving regulatory policies without requiring manual review of every transaction.
-
-Traditional compliance monitoring relies on manually coded rules that are brittle, hard to maintain, and slow to adapt when policies change. PolicyGuard solves this by using Large Language Models (LLMs) to automatically generate executable MongoDB query rules from natural language policy documents. Compliance officers can upload a policy PDF, and the system extracts the text, interprets the requirements, and generates database queries that can scan transaction data for violations. This dramatically reduces the time from policy update to enforcement, from weeks to minutes.
-
-The platform is built specifically for the GDG Hackfest 2.0 Policy Compliance problem statement and uses the recommended IBM AML (Anti-Money Laundering) dataset as its primary data source. It provides a complete end-to-end solution: policy ingestion, AI-powered rule generation, automated scanning, violation detection, and a web-based console for compliance officers to review and manage findings.
+Unlike traditional policy Q&A bots or BRD generators, PolicyGuard is an **operational compliance tool** that runs rules on live data, manages violations through their lifecycle, and assists compliance teams with actionable insights and automated workflows.
 
 ---
 
-## Dataset Usage
+## 🎯 What Makes PolicyGuard Unique
 
-### IBM AML Dataset
+PolicyGuard stands out from typical policy/BRD agents by focusing on **operational compliance**:
 
-PolicyGuard uses the **IBM AML dataset** recommended in the GDG Hackfest 2.0 dataset repository. This dataset contains realistic financial transaction data designed for anti-money laundering compliance testing and includes:
-
-- **Transactions**: Individual financial transfers with amounts, sender/receiver accounts, timestamps, and transaction types
-- **Accounts**: Customer account information including account types, balances, and risk profiles
-- **Customers**: Customer demographic and KYC (Know Your Customer) data
-- **Entities**: Business entities involved in transactions
-
-### MongoDB Import Process
-
-The dataset is imported into MongoDB with the following collections:
-
-```
-policyguard (database)
-├── transactions     # Financial transaction records
-├── accounts         # Account master data
-├── customers        # Customer profiles and KYC data
-├── entities         # Business entities
-├── policies         # Uploaded policy documents
-├── rules            # AI-generated compliance rules
-├── scan_runs        # Scan execution history
-└── violations       # Detected policy violations
-```
-
-**Import Steps**:
-1. Download IBM AML dataset from the Hackfest GitHub repository
-2. Convert CSV files to JSON format (if needed)
-3. Use `mongoimport` to load data into respective collections
-4. Create indexes on frequently queried fields (account_id, transaction_date, amount, etc.)
-
-### Example Rules Applied to Dataset
-
-PolicyGuard generates and applies various types of compliance rules to the IBM AML dataset:
-
-**1. High-Value Transaction Monitoring**
-```json
-{
-  "name": "Large Cash Transactions Without Documentation",
-  "collection": "transactions",
-  "query": {
-    "$and": [
-      {"amount": {"$gt": 10000}},
-      {"transaction_type": "CASH"},
-      {"documentation_status": {"$ne": "complete"}}
-    ]
-  },
-  "severity": "HIGH"
-}
-```
-
-**2. Rapid Succession Transfers (Structuring Detection)**
-```json
-{
-  "name": "Multiple Transactions Just Below Reporting Threshold",
-  "collection": "transactions",
-  "aggregation": [
-    {"$match": {"amount": {"$gte": 9000, "$lt": 10000}}},
-    {"$group": {
-      "_id": "$sender_account",
-      "count": {"$sum": 1},
-      "total": {"$sum": "$amount"}
-    }},
-    {"$match": {"count": {"$gte": 3}}}
-  ],
-  "severity": "CRITICAL"
-}
-```
-
-**3. Sanctioned Entity Screening**
-```json
-{
-  "name": "Transactions Involving Sanctioned Entities",
-  "collection": "transactions",
-  "query": {
-    "$or": [
-      {"sender.sanctioned": true},
-      {"receiver.sanctioned": true}
-    ]
-  },
-  "severity": "CRITICAL"
-}
-```
-
-**4. Unusual Account Activity**
-```json
-{
-  "name": "Dormant Account Sudden Activity",
-  "collection": "accounts",
-  "query": {
-    "$and": [
-      {"last_activity_days": {"$gt": 180}},
-      {"recent_transaction_count": {"$gt": 5}},
-      {"recent_transaction_total": {"$gt": 50000}}
-    ]
-  },
-  "severity": "MEDIUM"
-}
-```
-
-These rules are automatically generated by the LLM based on policy documents uploaded by compliance officers, then executed against the IBM AML dataset during scheduled or on-demand scans.
+1. **Runs Rules on Live Data**: Executes MongoDB aggregation pipelines on real transactional datasets (IBM AML), not just answering questions about policies
+2. **Multi-Tenant Architecture**: Complete company isolation with role-based access (Admin, Compliance Officer, Auditor)
+3. **Violation Workflow**: Full lifecycle management (Open → Confirmed → Dismissed) with remediation suggestions and audit trails
+4. **Risk Scoring & Alerts**: Account-level risk computation, real-time alerts via email/Slack for high-severity violations
+5. **Audit-Ready Evidence**: Scan runs store rule versions, timestamps, and violation snapshots; exportable as CSV/JSON audit packs
+6. **Continuous Monitoring**: Scheduled scans with control health metrics, not one-time document analysis
 
 ---
 
-## Architecture
+## 🏗️ Tech Stack (FARM + RAG)
 
-### System Design (FARM Stack)
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                   React Web Dashboard (SPA)                     │
-│  (Dashboard, Policies, Rules, Scans, Violations, Analytics)    │
-│  React 18 + TypeScript + MUI + React Query + Axios             │
-└────────────────────────┬────────────────────────────────────────┘
-                         │ REST API (Axios)
-                         ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    FastAPI Backend (Uvicorn)                    │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐         │
-│  │   Routes     │  │   Services   │  │    Models    │         │
-│  │ (Endpoints)  │  │ (Business    │  │  (Pydantic)  │         │
-│  │              │  │  Logic)      │  │              │         │
-│  └──────────────┘  └──────────────┘  └──────────────┘         │
-└────────────────────────┬────────────────────────────────────────┘
-                         │ Motor (Async Driver)
-                         ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                         MongoDB                                 │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐         │
-│  │ IBM AML Data │  │   Policies   │  │    Rules     │         │
-│  │ (transactions│  │   (PDFs)     │  │ (Generated)  │         │
-│  │  accounts,   │  │              │  │              │         │
-│  │  customers)  │  │              │  │              │         │
-│  └──────────────┘  └──────────────┘  └──────────────┘         │
-│  ┌──────────────┐  ┌──────────────┐                           │
-│  │  Scan Runs   │  │  Violations  │                           │
-│  │  (History)   │  │  (Findings)  │                           │
-│  └──────────────┘  └──────────────┘                           │
-└────────────────────────┬────────────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    LLM Service (Google Gemini)                  │
-│  Policy Text + Schema → AI-Generated MongoDB Rules              │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### Component Breakdown
-
-**1. React Web Dashboard (Frontend)**
-- **Technology**: React 18 with TypeScript, Vite build tool
-- **UI Framework**: Material-UI (MUI) with dark theme
-- **State Management**: TanStack Query (React Query) for server state
-- **Routing**: React Router v6 for navigation
-- **HTTP Client**: Axios for REST API communication
-- **Charts**: Recharts for data visualization
-- **Purpose**: Provides compliance officers with an intuitive web interface to manage policies, review violations, and monitor compliance metrics
-- **Key Screens**: Dashboard, Policies & Rules, Scans, Violations, Analytics
-
-**2. FastAPI Backend**
-- **Technology**: FastAPI with Uvicorn ASGI server
-- **Database Driver**: Motor (async MongoDB client)
-- **PDF Processing**: PyMuPDF for text extraction
-- **Validation**: Pydantic for request/response models
-- **Purpose**: Exposes REST APIs for policy management, rule generation, scan execution, and violation tracking
-- **Key Services**: 
-  - PDF Service: Extracts text from uploaded policy documents
-  - LLM Service: Communicates with external LLM to generate rules
-  - Scan Service: Executes rules against MongoDB collections and records violations
-
-**3. MongoDB Database**
-- **Collections**: 
-  - `transactions`, `accounts`, `customers`, `entities` (IBM AML dataset)
-  - `policies` (uploaded policy documents with extracted text)
-  - `rules` (AI-generated MongoDB queries with metadata)
-  - `scan_runs` (execution history with timestamps and results)
-  - `violations` (detected violations with status and reviewer notes)
-- **Indexes**: Optimized for common queries (by date, amount, account, status, severity)
-- **Purpose**: Stores both operational data (AML dataset) and compliance metadata (policies, rules, violations)
-
-**4. LLM Policy Engine**
-- **Integration**: Google Gemini API
-- **API Key**: Configured in backend `.env` file
-- **Input**: Policy text + MongoDB schema hints
-- **Output**: Structured JSON rule definitions with MongoDB queries
-- **Purpose**: Translates natural language policy requirements into executable database queries
-- **Example Prompt**: "Given this AML policy text and the schema of the transactions collection, generate MongoDB queries to detect violations"
-
-### Optional Future Enhancements (Roadmap)
-
-- **Event Streaming**: Kafka or Redis Streams for real-time transaction monitoring
-- **Vector Database**: Pinecone or Weaviate for semantic policy search and similarity matching
-- **Scheduled Scans**: APScheduler or Celery for automated periodic compliance checks
-- **Audit Trail**: Immutable log of all policy changes and violation status updates
-- **Multi-tenancy**: Support for multiple organizations with isolated data
-- **Advanced Analytics**: ML models for anomaly detection and risk scoring
+- **Backend**: FastAPI + Uvicorn + Motor (async MongoDB driver)
+- **Frontend**: React 18 + TypeScript + Vite + React Router + TanStack Query + Material-UI + Recharts
+- **Database**: MongoDB (multi-tenant collections with `company_id` scoping)
+- **AI/LLM**: Google Gemini API for policy-to-rule extraction (RAG-ready architecture)
+- **Auth**: JWT with role-based access control (RBAC)
+- **Dataset**: IBM AML transaction data from GDG Hackfest 2.0
 
 ---
 
-## Backend Design
+## ✨ Feature Summary
 
-### Folder Structure
+### A) Core Features (Implemented ✔)
 
+| # | Feature | Status | Description |
+|---|---------|--------|-------------|
+| 1 | **Secure Login & Roles** | ✔ | Multi-tenant company registration, JWT auth, 3 roles (Admin/Compliance Officer/Auditor) |
+| 2 | **Dashboard** | ✔ | Real-time metrics, violation trends (line chart), severity distribution (bar chart), recent violations table |
+| 3 | **Policy & Rule Management** | ✔ | Upload PDF policies, LLM extracts MongoDB rules, enable/disable rules per company |
+| 4 | **Scans & Scheduling** | ✔ | Manual scan execution, scheduled scans (cron-like), scan history with duration/violations count |
+| 5 | **Violations Workflow** | ✔ | Filter by rule/severity/status/date, update status (Open/Confirmed/Dismissed), add notes |
+| 6 | **Account Risk Scoring** | ✔ | Weighted risk score (High=3, Med=2, Low=1), risk badges (Low/Med/High/Critical), violation history |
+
+### B) Smart Compliance Features (Implemented/Planned)
+
+| # | Feature | Status | Description |
+|---|---------|--------|-------------|
+| 7 | **Smart Remediation** | ✔ | LLM suggests 1-3 remediation actions per violation (e.g., "Request additional KYC docs") |
+| 8 | **Real-Time Alerts** | ✔ | Email/Slack webhooks trigger on high-severity violations, configurable per company |
+| 9 | **Impact Analysis** | ✔ | Simulate rule changes on historical data (e.g., "What if threshold was $5K instead of $10K?") |
+| 10 | **Audit Packs** | ✔ | Export scan runs as CSV/JSON with rule versions, timestamps, violation snapshots |
+| 11 | **Multi-Policy Framework** | ☐ | Roadmap: Support multiple policy sets (AML, KYC, Sanctions) with dataset switching |
+
+---
+
+## 🔐 Multi-Tenancy & Authentication
+
+### Company-Based Isolation
+- Every collection includes `company_id` field
+- All queries automatically scoped by JWT `company_id`
+- Companies register with first admin user
+- Users belong to one company, cannot access other companies' data
+
+### Roles & Permissions
+- **Admin**: Full access (manage users, policies, rules, scans, settings)
+- **Compliance Officer**: Review violations, run scans, view reports
+- **Auditor**: Read-only access to violations, scans, and audit trails
+
+### JWT Token Structure
+```json
+{
+  "sub": "user_id",
+  "company_id": "company_id",
+  "role": "ADMIN",
+  "email": "user@company.com",
+  "exp": 1234567890
+}
 ```
-backend/
-├── app/
-│   ├── __init__.py
-│   ├── main.py              # FastAPI app initialization, CORS, lifespan events
-│   ├── config.py            # Settings from environment variables (Pydantic)
-│   ├── db.py                # MongoDB connection management (Motor)
-│   │
-│   ├── models/              # Pydantic models for request/response
-│   │   ├── __init__.py
-│   │   ├── policy.py        # PolicyIn, PolicyOut, PolicySummary
-│   │   ├── rule.py          # RuleIn, RuleOut, RuleUpdate, RuleSeverity
-│   │   ├── scan.py          # ScanRequest, ScanRun, ScanSummary
-│   │   └── violation.py     # Violation, ViolationUpdate, ViolationStatus
-│   │
-│   ├── routes/              # API endpoint definitions
-│   │   ├── __init__.py
-│   │   ├── policies.py      # POST /policies/upload, GET /policies, POST /policies/{id}/extract-rules
-│   │   ├── rules.py         # GET /rules, POST /rules, PATCH /rules/{id}, DELETE /rules/{id}
-│   │   ├── scans.py         # POST /scans/run, GET /scans/runs, GET /scans/runs/{id}
-│   │   └── violations.py    # GET /violations, PATCH /violations/{id}, DELETE /violations/{id}
-│   │
-│   └── services/            # Business logic and external integrations
-│       ├── __init__.py
-│       ├── pdf_service.py   # extract_text_from_pdf(file_bytes) -> str
-│       ├── llm_service.py   # generate_rules_from_policy(text, schema) -> List[RuleIn]
-│       └── scan_service.py  # run_scan(collections, rule_ids) -> ScanSummary
-│
-├── .env                     # Environment variables (not in git)
-├── .env.example             # Template for environment configuration
-├── .gitignore
-├── requirements.txt         # Python dependencies
-├── run.py                   # Development server runner
-└── README.md                # Backend-specific documentation
-```
 
-### Key API Endpoints
+---
 
-**Policies**
-- `POST /policies/upload` - Upload policy PDF, extract text, store in database
-  - Request: `multipart/form-data` with file, name, description, version
-  - Response: `PolicyOut` with ID, extracted text length, timestamps
-- `GET /policies` - List all policies with pagination
-  - Query params: `limit`, `offset`
-  - Response: `List[PolicySummary]`
-- `GET /policies/{id}` - Get policy details including full extracted text
-- `POST /policies/{id}/extract-rules` - Use LLM to generate rules from policy
-  - Request: `{"schema_hint": "optional MongoDB schema description"}`
-  - Response: `List[RuleOut]` with generated rules
-- `DELETE /policies/{id}` - Delete policy and associated rules
+## 🗄️ Backend Architecture
 
-**Rules**
-- `GET /rules` - List rules with filters
-  - Query params: `collection`, `enabled`, `policy_id`, `limit`, `offset`
-  - Response: `List[RuleOut]`
+### MongoDB Collections (All Multi-Tenant)
+
+| Collection | Purpose | Key Fields |
+|------------|---------|------------|
+| `companies` | Company profiles | `name`, `industry`, `created_at` |
+| `users` | User accounts | `company_id`, `email`, `password_hash`, `role` |
+| `policies` | Uploaded PDF policies | `company_id`, `name`, `file_path`, `text_content`, `embeddings` |
+| `rules` | Extracted compliance rules | `company_id`, `policy_id`, `name`, `collection`, `pipeline`, `severity`, `enabled` |
+| `scan_runs` | Scan execution history | `company_id`, `started_at`, `duration`, `status`, `rule_results[]` |
+| `violations` | Detected violations | `company_id`, `scan_run_id`, `rule_id`, `severity`, `status`, `document_data`, `remediation_suggestions[]` |
+| `accounts` | Account master data | `company_id`, `account_id`, `account_type`, `balance`, `status` |
+| `transactions` | Transaction data (IBM AML) | `company_id`, `transaction_id`, `amount`, `src_account`, `dst_account`, `timestamp` |
+| `alert_configs` | Alert settings | `company_id`, `channel` (email/slack), `webhook_url`, `min_severity` |
+| `scan_schedules` | Scheduled scans | `company_id`, `frequency`, `interval_hours`, `collections[]`, `rule_ids[]` |
+
+### API Endpoints (30+)
+
+#### Authentication
+- `POST /auth/register-company` - Register new company + admin user
+- `POST /auth/login` - Login with email/password, returns JWT
+- `GET /auth/me` - Get current user info
+
+#### Dashboard
+- `GET /dashboard/summary` - Metrics (total/open/critical violations, enabled rules)
+
+#### Policies & Rules
+- `POST /policies` - Upload PDF policy
+- `GET /policies` - List company policies
+- `GET /policies/{id}` - Get policy details
+- `POST /policies/{id}/extract-rules` - LLM extracts rules from policy text
+- `GET /rules` - List all rules (filterable by policy, enabled status)
 - `GET /rules/{id}` - Get rule details
-- `POST /rules` - Manually create a rule
-- `PATCH /rules/{id}` - Update rule (toggle enabled, modify query, change severity)
-- `DELETE /rules/{id}` - Delete rule
+- `PATCH /rules/{id}` - Update rule (enable/disable, edit pipeline)
+- `POST /rules/{id}/simulate` - Impact analysis (run on historical data)
 
-**Scans**
-- `POST /scans/run` - Execute compliance scan
-  - Request: `{"collections": ["transactions"], "rule_ids": ["rule_1", "rule_2"]}`
-  - Response: `ScanSummary` with violations found, execution time, rule results
-- `GET /scans/runs` - List scan history with pagination
-- `GET /scans/runs/{id}` - Get detailed scan results
-- `DELETE /scans/runs/{id}` - Delete scan run and associated violations
+#### Scans
+- `POST /scans/run` - Execute manual scan
+- `GET /scans` - List scan history
+- `GET /scans/{id}` - Get scan details
+- `GET /scans/{id}/export` - Export audit pack (CSV/JSON)
 
-**Violations**
-- `GET /violations` - List violations with filters
-  - Query params: `rule_id`, `severity`, `status`, `scan_run_id`, `limit`, `offset`
-  - Response: `List[Violation]`
-- `GET /violations/{id}` - Get violation details with document snapshot
-- `PATCH /violations/{id}` - Update violation status and add reviewer notes
-  - Request: `{"status": "CONFIRMED", "reviewer_note": "...", "reviewed_by": "officer_name"}`
-- `DELETE /violations/{id}` - Delete violation record
+#### Violations
+- `GET /violations` - List violations (filters: rule, severity, status, date range)
+- `GET /violations/{id}` - Get violation details
+- `PATCH /violations/{id}` - Update status, add notes
+- `POST /violations/{id}/remediate` - Log remediation action
 
-### Scan Engine Logic
+#### Accounts
+- `GET /accounts/{id}` - Get account details + risk score + violations
 
-The scan service (`scan_service.py`) implements the core compliance checking logic:
-
-1. **Load Rules**: Query MongoDB for enabled rules (optionally filtered by collection or rule IDs)
-2. **Execute Queries**: For each rule:
-   - If rule has a `query` field: Execute `collection.find(query)`
-   - If rule has an `aggregation` field: Execute `collection.aggregate(pipeline)`
-3. **Record Violations**: For each matching document:
-   - Create a violation record with:
-     - `scan_run_id`: Links to the current scan
-     - `rule_id`: Which rule was violated
-     - `document_id`: ID of the violating document
-     - `document_data`: Snapshot of the document (sanitized)
-     - `severity`: From the rule definition
-     - `status`: Initially "OPEN"
-     - `created_at`: Timestamp
-4. **Update Scan Run**: Record total rules executed, violations found, execution time
-5. **Return Summary**: Provide breakdown by rule and overall statistics
+#### Settings
+- `POST /settings/alerts` - Create alert config
+- `GET /settings/alerts` - List alert configs
+- `POST /settings/schedules` - Create scan schedule
+- `GET /settings/schedules` - List scan schedules
+- `GET /settings/control-health` - Get rule health metrics (last run, violation rate)
 
 ---
 
-## Frontend Design
+## 🎨 Frontend Architecture
 
-### Main Screens
+### Pages & Routes
 
-**1. Dashboard**
-- **Purpose**: High-level overview of compliance status
-- **Components**:
-  - Metric cards: Total violations, open violations, critical issues, active rules
-  - Trend charts: Violations over time (line chart), violations by severity (bar chart)
-  - Recent violations table: Latest violations with quick actions
-- **State**: React Query hooks fetch summary from backend API
-- **Interactions**: Click on metric cards to filter violations, click table rows to view details
+| Route | Page | Description |
+|-------|------|-------------|
+| `/login` | LoginPage | Company login with email/password |
+| `/app/dashboard` | DashboardPage | Metrics cards, charts (violations trend, severity distribution), recent violations table |
+| `/app/policies` | PoliciesPage | Upload PDFs, list policies, generate rules button |
+| `/app/rules` | RulesPage | List rules, enable/disable toggle, view MongoDB pipeline, simulate impact |
+| `/app/scans` | ScansPage | Run manual scan, view history, schedule scans, export audit packs |
+| `/app/violations` | ViolationsPage | Filter violations, detail drawer with remediation suggestions, status updates |
+| `/app/accounts` | AccountsPage | Search accounts, view risk score badge, violation history |
+| `/app/analytics` | AnalyticsPage | Trend analysis, control effectiveness, risk heatmaps |
+| `/app/settings` | SettingsPage | Company info, user role, alert config (email/Slack), scan schedules |
 
-**2. Policies & Rules**
-- **Purpose**: Manage policy documents and generated rules
-- **Layout**: Two-column layout
-  - **Left Column**: Policy list
-    - Shows all uploaded policies with name, version, upload date
-    - Click to select and view details
-  - **Right Column**: 
-    - Upload panel: File picker for PDF upload
-    - "Extract Rules" button: Calls LLM to generate rules from selected policy
-    - Rules table: Shows all rules for selected policy
-      - Columns: Name, Collection, Severity, Enabled (toggle switch), Actions
-- **State**: 
-  - React Query hooks for policies and rules
-  - Local state for selected policy
-- **Interactions**: 
-  - Upload PDF → POST to `/policies/upload`
-  - Extract rules → POST to `/policies/{id}/extract-rules`
-  - Toggle rule enabled → PATCH to `/rules/{id}`
+### Key Components
 
-**3. Scans**
-- **Purpose**: Configure and execute compliance scans
-- **Components**:
-  - Configuration form:
-    - Dropdown: Select target collection (or "All collections")
-    - Switch: "Only enabled rules"
-    - Button: "Run Scan"
-  - Scan history table: Past scans with status, timestamp, violations found
-- **State**:
-  - React Query hooks for scan runs
-  - Local state for scan configuration
-- **Interactions**:
-  - Run scan → POST to `/scans/run`
-  - View scan details → Navigate to scan detail view
+- **MetricCard**: Animated cards with gradient text, hover effects, trend indicators
+- **ViolationDetailDrawer**: Shows violation snapshot, suggested remediation, status workflow
+- **RiskScoreBadge**: Color-coded badge (Low=green, Med=yellow, High=orange, Critical=red)
+- **ScanHistoryTable**: Sortable table with duration, violations count, export button
+- **RuleSimulator**: Input new threshold, run on last N days, show impact diff
 
-**4. Violations**
-- **Purpose**: Review and manage detected violations
-- **Components**:
-  - Filter bar: Dropdowns for severity, status, rule, date range
-  - Violations table with pagination:
-    - Columns: Rule Name, Document ID, Severity, Status, Detected At, Actions
-    - Row click opens detail dialog
-  - Detail dialog:
-    - Rule name and description
-    - Severity badge
-    - Document data (JSON viewer)
-    - Status dropdown (OPEN, CONFIRMED, DISMISSED, FALSE_POSITIVE)
-    - Reviewer note text field
-    - Save button
-- **State**:
-  - React Query hooks for violations with filters
-  - Local state for selected violation and dialog
-- **Interactions**:
-  - Apply filters → Refresh violations with query params
-  - Update status → PATCH to `/violations/{id}`
-
-**5. Analytics**
-- **Purpose**: Visualize compliance trends and insights
-- **Components**:
-  - Violations over time by severity (stacked line chart)
-  - Top rules by violations (horizontal bar chart)
-  - Top risky accounts (table)
-- **State**: React Query hooks fetch aggregated analytics data
-- **Interactions**: Click chart segments to drill down into filtered violations
-
-### Frontend-Backend Communication
-
-- **HTTP Client**: Axios configured in `src/api/client.ts`
-- **Base URL**: Configurable via environment variable (default: `http://localhost:8000`)
-- **State Management**: TanStack Query (React Query) for data fetching, caching, and synchronization
-- **Error Handling**: Axios interceptors log requests/responses, display user-friendly error messages
-- **Loading States**: React Query's `isLoading`, `isError`, `isSuccess` states
-- **Mock Data**: Currently, API hooks return mock data for development; uncomment actual API calls to connect to backend
+### State Management
+- **TanStack Query** for API calls (caching, loading states, error handling)
+- **React Router** for protected routes (JWT check)
+- **Axios interceptor** for automatic JWT attachment + 401 handling
 
 ---
 
-## Current Status
+## 📊 Dataset Usage (IBM AML)
 
-### ✅ Completed
+PolicyGuard uses the **IBM AML (Anti-Money Laundering) dataset** from GDG Hackfest 2.0:
 
-**Backend**:
-- [x] Project structure initialized (`backend/app/` with main.py, config.py, db.py)
-- [x] Pydantic models defined for all entities (Policy, Rule, Scan, Violation)
-- [x] FastAPI routes implemented for all endpoints (policies, rules, scans, violations)
-- [x] MongoDB connection setup with Motor (async driver)
-- [x] Database indexes created automatically on startup
-- [x] PDF text extraction service implemented (PyMuPDF)
-- [x] LLM service stubbed with sample rule generation
-- [x] Scan engine implemented (loads rules, executes queries, records violations)
-- [x] CORS middleware configured for Flutter frontend
-- [x] API documentation auto-generated (Swagger UI at `/docs`)
-- [x] Environment configuration with `.env` file
-- [x] Development server runner (`run.py`)
+- **1000 transactions**: Wire, Cash, Check, ACH, Card transactions with amounts, timestamps, src/dst accounts
+- **100 accounts**: Account master data with balances, types, statuses
+- **3 example rules**: Large cash transactions ($10K+), structuring detection, high-risk account patterns
 
-**Frontend**:
-- [x] React project initialized with Vite and TypeScript
-- [x] Material-UI (MUI) configured with dark theme
-- [x] React Query (TanStack Query) for data fetching
-- [x] React Router v6 navigation setup
-- [x] Main layout with app bar and sidebar navigation
-- [x] Dashboard screen with metric cards, charts, and tables
-- [x] Policies & Rules screen with two-column layout
-- [x] Policy upload functionality with file picker
-- [x] Scans screen with configuration form and history table
-- [x] Violations screen with filter bar and detail dialog
-- [x] Analytics screen with charts and tables
-- [x] API client with Axios configured and mock data
-- [x] Responsive layout (sidebar collapses on mobile)
-- [x] TypeScript interfaces for all data types
-
-**Documentation**:
-- [x] Comprehensive README (this file)
-- [x] SETUP.md with detailed installation instructions
-- [x] QUICKSTART.md for 5-minute setup
-- [x] DEBUG.md with troubleshooting guide
-- [x] Backend-specific README
-- [x] Frontend-specific README
-
-### 🚧 In Progress
-
-- [ ] IBM AML dataset import scripts (CSV to MongoDB)
-- [ ] Real LLM integration (currently using Google Gemini with API key configured)
-- [ ] Frontend-backend integration (API calls are stubbed with mock data)
-- [ ] Real-time scan progress updates
-
-### 📋 Planned
-
-- [ ] Authentication and authorization (JWT tokens)
-- [ ] User management (roles: admin, compliance officer, reviewer)
-- [ ] Scheduled scans (APScheduler or Celery)
-- [ ] Real-time scan progress (WebSocket or Server-Sent Events)
-- [ ] Audit trail for all policy and violation changes
-- [ ] Export violations to CSV/Excel
-- [ ] Email notifications for critical violations
-- [ ] Unit tests (pytest for backend, flutter test for frontend)
-- [ ] Integration tests
-- [ ] Docker Compose for easy deployment
-- [ ] CI/CD pipeline (GitHub Actions)
+### Sample Rule (Large Cash Transactions)
+```json
+{
+  "name": "Large Cash Transactions",
+  "collection": "transactions",
+  "pipeline": [
+    { "$match": { "transaction_type": "CASH", "amount": { "$gte": 10000 } } },
+    { "$project": { "transaction_id": 1, "amount": 1, "timestamp": 1 } }
+  ],
+  "severity": "HIGH",
+  "explanation": "Cash transactions over $10,000 require CTR filing"
+}
+```
 
 ---
 
-## Roadmap / TODO
+## 🧠 Smart Compliance Features
 
-### Backend
+### 1. Smart Remediation Suggestions
+When a violation is detected, PolicyGuard's LLM generates 1-3 actionable remediation steps:
 
-**High Priority**:
-1. [ ] Create MongoDB import scripts for IBM AML dataset
-   - Download dataset from Hackfest GitHub
-   - Write Python script to parse CSV and insert into MongoDB
-   - Create indexes on key fields (account_id, transaction_date, amount)
-2. [ ] Implement real LLM integration in `llm_service.py`
-   - Add OpenAI/Anthropic API client
-   - Design prompt template for rule generation
-   - Parse LLM response into `RuleIn` objects
-   - Add error handling and retry logic
-3. [ ] Add authentication middleware
-   - JWT token generation and validation
-   - Protect endpoints with `Depends(get_current_user)`
-   - Add user model and login endpoint
-4. [ ] Implement scheduled scans
-   - Add APScheduler to run scans periodically
-   - Store schedule configuration in database
-   - Add endpoints to manage schedules
+**Example (Large Cash Transaction)**:
+1. Request additional KYC documentation from customer
+2. File Currency Transaction Report (CTR) with FinCEN
+3. Review customer's transaction history for patterns
 
-**Medium Priority**:
-5. [ ] Add WebSocket endpoint for real-time scan progress
-6. [ ] Implement audit trail (log all changes to policies, rules, violations)
-7. [ ] Add export endpoint for violations (CSV/Excel)
-8. [ ] Write unit tests for services and routes
-9. [ ] Add logging with structured output (JSON logs)
-10. [ ] Implement rate limiting and request validation
+**Implementation**: `POST /violations/{id}/remediate` logs chosen action + notes
 
-**Low Priority**:
-11. [ ] Add vector database for semantic policy search
-12. [ ] Implement ML-based anomaly detection
-13. [ ] Add support for multiple LLM providers
-14. [ ] Create admin dashboard for system monitoring
+### 2. Real-Time Alerts
+Configurable alerts trigger on high-severity violations:
 
-### Frontend
+- **Email**: SMTP integration with customizable templates
+- **Slack**: Webhook integration with rich message formatting
+- **Webhook**: Generic HTTP POST for custom integrations
 
-**High Priority**:
-1. [ ] Connect API client to real backend
-   - Uncomment API calls in React Query hooks
-   - Remove mock data generators
-   - Test all endpoints
-2. [ ] Add pagination to violations and rules tables
-   - Implement page controls
-   - Add sorting by column
-3. [ ] Implement real-time scan progress updates
-   - WebSocket connection or polling
-   - Live log streaming
-   - Progress indicators
-4. [ ] Add date range picker for violation filters
-5. [ ] Implement export functionality (download violations as CSV)
+**Configuration**: `POST /settings/alerts` with `min_severity`, `channel`, `recipients`
 
-**Medium Priority**:
-5. [ ] Implement authentication flow
-   - Login screen
-   - Token storage (localStorage or sessionStorage)
-   - Auto-refresh tokens
-   - Logout functionality
-6. [ ] Add loading skeletons for better UX
-7. [ ] Implement toast notifications for actions
-8. [ ] Add confirmation dialogs for destructive actions
-9. [ ] Improve mobile responsiveness
-10. [ ] Write component tests with React Testing Library
+### 3. Impact Analysis
+Simulate rule changes before deployment:
 
-**Low Priority**:
-11. [ ] Add light theme toggle
-12. [ ] Implement keyboard shortcuts
-13. [ ] Add accessibility features (ARIA labels, screen reader support)
-14. [ ] Optimize bundle size and performance
+**Example**: "What if we lower the large transaction threshold from $10K to $5K?"
 
-### AI/Rules
+```bash
+POST /rules/{rule_id}/simulate
+{
+  "modified_pipeline": [...],  # Updated threshold
+  "lookback_days": 30
+}
+```
 
-**High Priority**:
-1. [ ] Design LLM prompt template for rule generation
-   - Include policy text, MongoDB schema, example rules
-   - Specify output format (JSON with query/aggregation)
-2. [ ] Test LLM with sample policies
-   - Validate generated rules
-   - Refine prompt based on results
-3. [ ] Implement rule validation
-   - Check MongoDB query syntax
-   - Test rules against sample data
-   - Prevent injection attacks
+**Response**: Shows additional violations that would be detected, helping assess operational impact
 
-**Medium Priority**:
-4. [ ] Add rule templates library
-   - Common AML patterns (structuring, smurfing, etc.)
-   - Allow users to select and customize templates
-5. [ ] Implement rule versioning
-   - Track changes to rules over time
-   - Allow rollback to previous versions
-6. [ ] Add rule testing interface
-   - Dry-run rules against sample data
-   - Show expected violations before enabling
+### 4. Audit Packs & Evidence
+Every scan run stores:
+- Rule versions (pipeline snapshots)
+- Execution timestamps
+- Violation document snapshots (immutable)
+- User actions (status changes, notes)
 
-### DevOps
-
-**High Priority**:
-1. [ ] Create Docker Compose setup
-   - Backend container
-   - Frontend container (nginx)
-   - MongoDB container
-   - Environment variable configuration
-2. [ ] Write deployment documentation
-   - Production environment setup
-   - Security best practices
-   - Backup and restore procedures
-
-**Medium Priority**:
-3. [ ] Set up CI/CD pipeline (GitHub Actions)
-   - Run tests on pull requests
-   - Build and push Docker images
-   - Deploy to staging/production
-4. [ ] Add monitoring and alerting
-   - Prometheus metrics
-   - Grafana dashboards
-   - Error tracking (Sentry)
-5. [ ] Implement database backup strategy
-   - Automated daily backups
-   - Point-in-time recovery
-   - Backup verification
+**Export**: `GET /scans/{id}/export?format=csv` generates audit-ready report
 
 ---
 
-## How to Run
+## 🚀 How to Run
 
 ### Prerequisites
+- Python 3.11+
+- Node.js 18+
+- MongoDB 4.4+ (local or Docker)
+- Google Gemini API key (for LLM features)
 
-- **Python 3.11+**: Check with `python --version`
-- **Node.js 18+**: Check with `node --version`
-- **MongoDB**: Local installation or Docker container
-- **Git**: For cloning the repository
+### 1. Setup (Automated)
 
-### 1. Clone Repository
+```powershell
+# Run setup script (creates venv, installs dependencies)
+.\setup.ps1
 
-```bash
-git clone <repository-url>
-cd policyguard
+# Verify setup
+.\test_setup.ps1
 ```
 
-### 2. Setup MongoDB
+### 2. Start MongoDB
 
-**Option A: Docker (Recommended)**
-```bash
+```powershell
+# Option A: Docker
 docker run -d -p 27017:27017 --name mongodb mongo:latest
+
+# Option B: Local MongoDB service
+net start MongoDB
 ```
 
-**Option B: Local Installation**
-- Download from https://www.mongodb.com/try/download/community
-- Follow installation instructions for your OS
-- Ensure MongoDB is running on port 27017
+### 3. Configure Environment
 
-**Verify MongoDB is running**:
-```bash
-mongosh mongodb://localhost:27017
-# Should connect successfully
+Edit `backend/.env`:
+```env
+MONGO_URI=mongodb://localhost:27017
+MONGO_DB_NAME=policyguard
+JWT_SECRET_KEY=your-secret-key-change-in-production
+GEMINI_API_KEY=AIzaSyCt0mvrqZyqMbWgv1_ce0sIUyB-IjwYWNA
+CORS_ORIGINS=http://localhost:5173,http://localhost:5174
 ```
 
-### 3. Setup Backend
+### 4. Start Backend
 
-```bash
+```powershell
 cd backend
-
-# Create virtual environment
-python -m venv venv
-
-# Activate virtual environment
-# Windows:
-venv\Scripts\activate
-# Linux/Mac:
-source venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Configure environment
-cp .env.example .env
-# Edit .env if needed (default values should work for local development)
-
-# Run backend server
+.\venv\Scripts\Activate.ps1
 python run.py
 ```
 
-**Expected output**:
-```
-INFO:     Uvicorn running on http://0.0.0.0:8000
-INFO:     Connected to MongoDB database: policyguard
-INFO:     Database indexes created successfully
-```
+Backend runs on **http://localhost:8000**
+- API Docs: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
 
-**Verify backend is running**:
-- Open http://localhost:8000 in browser (should see `{"service": "PolicyGuard API", "status": "running"}`)
-- Open http://localhost:8000/docs for interactive API documentation
+### 5. Import Sample Data
 
-### 4. Setup Frontend
-
-```bash
-cd frontend
-
-# Install dependencies
-npm install
-
-# Run frontend (opens in browser automatically)
-npm run dev
-```
-
-**Expected output**:
-```
-VITE v7.x.x  ready in xxx ms
-
-➜  Local:   http://localhost:5173/
-➜  Network: use --host to expose
-```
-
-**Verify frontend is running**:
-- Browser should open automatically with PolicyGuard dashboard at http://localhost:5173
-- Check browser console (F12) for any errors
-- Navigate through Dashboard, Policies, Scans, Violations, Analytics
-
-### 5. Import IBM AML Dataset (Coming Soon)
-
-```bash
-# Download dataset from Hackfest GitHub
-# (Script to be implemented)
-
-# Import into MongoDB
+```powershell
+cd backend
+.\venv\Scripts\Activate.ps1
 python scripts/import_aml_data.py
 ```
 
-### 6. Test the Application
+This creates:
+- 1000 sample transactions
+- 100 sample accounts
+- 3 example compliance rules
 
-**Backend Tests**:
-```bash
-cd backend
+### 6. Start Frontend
 
-# Test health endpoint
-curl http://localhost:8000/health
-
-# Test policies endpoint
-curl http://localhost:8000/policies
-
-# View API documentation
-# Open http://localhost:8000/docs in browser
-```
-
-**Frontend Tests**:
-- Navigate to Dashboard (should show mock metrics)
-- Go to Policies & Rules (should show sample policies)
-- Go to Violations (should show sample violations)
-- Check browser DevTools Network tab (should see API calls with mock responses)
-
-### Troubleshooting
-
-**Backend won't start**:
-- Check Python version: `python --version` (must be 3.11+)
-- Ensure MongoDB is running: `mongosh mongodb://localhost:27017`
-- Check if port 8000 is available: `netstat -ano | findstr :8000` (Windows) or `lsof -i :8000` (Mac/Linux)
-- Install dependencies: `pip install -r requirements.txt`
-
-**Frontend won't start**:
-- Check Node.js version: `node --version` (must be 18+)
-- Check npm version: `npm --version`
-- Clean and reinstall: `rm -rf node_modules package-lock.json && npm install`
-- Check if port 5173 is available
-
-**MongoDB connection error**:
-- Verify MongoDB is running: `mongosh mongodb://localhost:27017`
-- Check `.env` file has correct `MONGO_URI`
-- Ensure no firewall blocking port 27017
-
-**For detailed troubleshooting**, see [DEBUG.md](DEBUG.md)
-
----
-
-## Development Workflow
-
-### Backend Development
-
-```bash
-cd backend
-
-# Activate virtual environment
-source venv/bin/activate  # or venv\Scripts\activate on Windows
-
-# Run with auto-reload
-uvicorn app.main:app --reload --log-level debug
-
-# Run tests (when implemented)
-pytest
-
-# Format code
-black app/
-isort app/
-
-# Type checking
-mypy app/
-```
-
-### Frontend Development
-
-```bash
+```powershell
 cd frontend
-
-# Run with hot reload
 npm run dev
-
-# Build for production
-npm run build
-
-# Preview production build
-npm run preview
-
-# Type checking
-npm run type-check
-
-# Linting
-npm run lint
 ```
 
-### Database Management
+Frontend runs on **http://localhost:5173**
 
-```bash
-# Connect to MongoDB shell
-mongosh mongodb://localhost:27017/policyguard
+---
 
-# List collections
-show collections
+## 🎬 Demo Script (End-to-End)
 
-# Query transactions
-db.transactions.find().limit(5)
+### Step 1: Register Company
+1. Open http://localhost:8000/docs
+2. Execute `POST /auth/register-company`:
+```json
+{
+  "name": "Demo Financial Corp",
+  "industry": "Financial Services",
+  "admin_email": "admin@democorp.com",
+  "admin_password": "password123",
+  "admin_name": "Jane Admin"
+}
+```
+3. Copy the returned `access_token`
 
-# Check indexes
-db.transactions.getIndexes()
+### Step 2: Login to Frontend
+1. Open http://localhost:5173/login
+2. Enter:
+   - Email: `admin@democorp.com`
+   - Password: `password123`
+3. Click "Sign In"
 
-# Drop database (careful!)
-db.dropDatabase()
+### Step 3: View Dashboard
+- See metrics: Total Violations, Open Violations, Critical Issues, Active Rules
+- View charts: Violations Trend (last 7 days), Violations by Severity
+- Check recent violations table
+
+### Step 4: Upload Policy (Optional)
+1. Go to **Policies** page
+2. Click "Upload Policy"
+3. Upload any PDF (e.g., sample AML policy)
+4. Click "Generate Rules" to extract rules via LLM
+
+### Step 5: Run Compliance Scan
+1. Go to **Scans** page
+2. Click "Run Scan Now"
+3. Select collections: `transactions`, `accounts`
+4. Select rules: All enabled rules
+5. Click "Execute Scan"
+6. Wait for scan to complete (~5-10 seconds)
+
+### Step 6: Review Violations
+1. Go to **Violations** page
+2. See detected violations (e.g., "Large Cash Transactions")
+3. Click on a violation to open detail drawer
+4. View:
+   - Violation snapshot (transaction details)
+   - Suggested remediation actions
+   - Status workflow (Open → Confirmed → Dismissed)
+5. Update status to "Confirmed"
+6. Add notes: "Reviewed with compliance team, filing CTR"
+
+### Step 7: Check Account Risk Score
+1. Go to **Accounts** page
+2. Search for an account (e.g., `ACC0001`)
+3. View:
+   - Risk score badge (Low/Med/High/Critical)
+   - Weighted risk score (0-100)
+   - Recent violations list
+   - Transaction count
+
+### Step 8: Configure Alerts
+1. Go to **Settings** page
+2. Click "Add Alert Config"
+3. Configure:
+   - Channel: Email or Slack
+   - Min Severity: HIGH
+   - Recipients/Webhook URL
+4. Save config
+
+### Step 9: Export Audit Pack
+1. Go to **Scans** page
+2. Find completed scan
+3. Click "Export" button
+4. Download CSV/JSON audit pack with:
+   - Scan metadata (timestamp, duration)
+   - Rule versions
+   - Violation snapshots
+   - Audit trail
+
+---
+
+## 🔄 Continuous Monitoring Workflow
+
+PolicyGuard enables continuous compliance monitoring:
+
+```
+1. Upload Policy PDF
+   ↓
+2. LLM Extracts Rules (MongoDB pipelines)
+   ↓
+3. Enable Rules for Company
+   ↓
+4. Schedule Scans (hourly/daily/weekly)
+   ↓
+5. Scan Executes on Live Data
+   ↓
+6. Violations Detected & Stored
+   ↓
+7. Alerts Sent (Email/Slack)
+   ↓
+8. Compliance Team Reviews
+   ↓
+9. Remediation Actions Logged
+   ↓
+10. Audit Pack Generated
 ```
 
 ---
 
-## Contributing
+## 🛠️ Troubleshooting
 
-This project is built for GDG Hackfest 2.0. Contributions are welcome!
+### Backend won't start
+```powershell
+# Check Python version
+python --version  # Should be 3.11+
 
-### Development Guidelines
+# Reinstall dependencies
+cd backend
+.\venv\Scripts\Activate.ps1
+pip install -r requirements.txt
 
-1. **Code Style**:
-   - Backend: Follow PEP 8, use Black for formatting
-   - Frontend: Follow React/TypeScript best practices, use ESLint
-2. **Commits**: Use conventional commits (feat:, fix:, docs:, etc.)
-3. **Branches**: Create feature branches from `main`
-4. **Pull Requests**: Include description, screenshots (for UI changes), and test results
-5. **Testing**: Add tests for new features (when test framework is set up)
+# Check MongoDB connection
+python -c "from pymongo import MongoClient; client = MongoClient('mongodb://localhost:27017'); print('Connected:', client.server_info()['version'])"
+```
 
-### Project Structure Conventions
+### Frontend shows blank screen
+```powershell
+# Check browser console (F12) for errors
+# Verify API URL in frontend/.env
+# Reinstall dependencies
+cd frontend
+npm install
+npm run dev
+```
 
-- Backend: One route file per resource (policies, rules, scans, violations)
-- Frontend: Feature-based folder structure (dashboard, policies, scans, violations, analytics)
-- Models: Pydantic models in backend, TypeScript interfaces in frontend
-- Services: Business logic separate from routes/presentation
+### Login fails
+- Check JWT_SECRET_KEY in backend/.env
+- Verify user was created (check MongoDB `users` collection)
+- Check backend logs for errors
+
+### Scans don't detect violations
+- Verify rules are enabled (`GET /rules`)
+- Check rule pipelines are valid MongoDB aggregations
+- Ensure sample data was imported (`python scripts/import_aml_data.py`)
 
 ---
 
-## License
+## 📈 Roadmap
+
+### Phase 1 (Current - Hackfest 2.0)
+- ✔ Multi-tenant architecture
+- ✔ Policy-to-rule extraction (LLM)
+- ✔ Violation workflow & remediation
+- ✔ Risk scoring & alerts
+- ✔ Audit packs
+
+### Phase 2 (Post-Hackfest)
+- ☐ Multi-policy support (AML + KYC + Sanctions)
+- ☐ Real-time streaming (Kafka/Redis)
+- ☐ Advanced RAG (vector search for policy Q&A)
+- ☐ ML-based anomaly detection
+- ☐ Mobile app (React Native)
+
+### Phase 3 (Production)
+- ☐ SSO integration (SAML, OAuth)
+- ☐ Advanced RBAC (custom roles)
+- ☐ Workflow automation (auto-remediation)
+- ☐ Regulatory reporting (SAR, CTR auto-filing)
+- ☐ Multi-region deployment
+
+---
+
+## 🏆 Why PolicyGuard Wins
+
+PolicyGuard is not just another policy chatbot or BRD generator. It's a **complete operational compliance platform** that:
+
+1. **Executes Rules on Real Data**: Runs MongoDB aggregations on live transactions, not just document Q&A
+2. **Manages Full Lifecycle**: Violations go through Open → Confirmed → Dismissed with audit trails
+3. **Assists, Doesn't Replace**: Provides remediation suggestions and alerts, but keeps humans in the loop
+4. **Multi-Tenant from Day 1**: Built for SaaS deployment with complete company isolation
+5. **Audit-Ready**: Every action logged, every scan versioned, every violation immutable
+
+**PolicyGuard = Policy Intelligence + Operational Monitoring + Workflow Automation**
+
+---
+
+## 📝 License
 
 MIT License - See LICENSE file for details
 
 ---
 
-## Acknowledgments
+## 🤝 Contributing
 
-- **GDG Hackfest 2.0** for the problem statement and dataset recommendations
-- **IBM AML Dataset** for providing realistic financial transaction data
-- **FastAPI**, **React**, and **MongoDB** communities for excellent documentation and tools
-- **Google Gemini** for AI-powered rule generation
+This project was built for GDG Hackfest 2.0. Contributions welcome!
 
----
-
-## Contact & Support
-
-For questions, issues, or contributions:
-- GitHub Repository: https://github.com/ShivanshSingh1175/Policy_Guard
-- See frontend/README.md for React-specific documentation
-- See backend/README.md for FastAPI-specific documentation
+1. Fork the repo
+2. Create feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open Pull Request
 
 ---
+
+## 📧 Contact
+
+For questions or demo requests, contact the PolicyGuard team.
 
 **Built with ❤️ for GDG Hackfest 2.0**

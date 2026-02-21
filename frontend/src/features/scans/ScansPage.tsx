@@ -30,14 +30,30 @@ export default function ScansPage() {
   };
 
   return (
-    <Box>
-      <Typography variant="h4" gutterBottom>
+    <Box sx={{ animation: 'fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1)' }}>
+      <Typography
+        variant="h3"
+        gutterBottom
+        sx={{
+          fontWeight: 800,
+          background: 'linear-gradient(135deg, #2872A1 0%, #3A8BC2 100%)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text',
+          mb: 4,
+        }}
+      >
         Scans
       </Typography>
 
-      <Card sx={{ mb: 3 }}>
+      <Card
+        sx={{
+          mb: 3,
+          background: 'linear-gradient(135deg, rgba(40, 114, 161, 0.05) 0%, rgba(19, 47, 76, 1) 100%)',
+        }}
+      >
         <CardContent>
-          <Typography variant="h6" gutterBottom>
+          <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
             Run New Scan
           </Typography>
 
@@ -71,6 +87,12 @@ export default function ScansPage() {
               startIcon={<PlayArrowIcon />}
               onClick={handleRunScan}
               disabled={runScan.isPending}
+              sx={{
+                background: 'linear-gradient(135deg, #2872A1 0%, #3A8BC2 100%)',
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #1D5A7F 0%, #2872A1 100%)',
+                },
+              }}
             >
               {runScan.isPending ? 'Running...' : 'Run Scan'}
             </Button>
@@ -84,9 +106,13 @@ export default function ScansPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card
+        sx={{
+          background: 'linear-gradient(135deg, rgba(40, 114, 161, 0.05) 0%, rgba(19, 47, 76, 1) 100%)',
+        }}
+      >
         <CardContent>
-          <Typography variant="h6" gutterBottom>
+          <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
             Scan History
           </Typography>
 
@@ -109,7 +135,21 @@ export default function ScansPage() {
                 </thead>
                 <tbody>
                   {scans?.map((scan) => (
-                    <tr key={scan.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    <tr
+                      key={scan.id}
+                      style={{
+                        borderBottom: '1px solid rgba(255,255,255,0.05)',
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = 'rgba(40, 114, 161, 0.1)';
+                        e.currentTarget.style.transform = 'translateX(4px)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                        e.currentTarget.style.transform = 'translateX(0)';
+                      }}
+                    >
                       <td style={{ padding: '12px' }}>{scan.id}</td>
                       <td style={{ padding: '12px' }}>
                         {new Date(scan.started_at).toLocaleString()}
