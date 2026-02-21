@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '../client';
-import { Policy } from '../../types';
+// import { apiClient } from '../client';
+import type { Policy } from '../../types';
 
 // Mock data
 const mockPolicies: Policy[] = [

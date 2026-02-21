@@ -1,4 +1,4 @@
-import { Box, Typography, Card, CardContent, Grid } from '@mui/material';
+import { Grid2 as Grid, Typography, Card, CardContent, Box } from '@mui/material';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 // Mock data

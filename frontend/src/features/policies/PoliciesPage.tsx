@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  Grid,
+  Grid2 as Grid,
   Typography,
   Card,
   CardContent,

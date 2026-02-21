@@ -1,7 +1,6 @@
-import { Grid, Typography, Card, CardContent, Box, Chip, CircularProgress } from '@mui/material';
+import { Grid2 as Grid, Typography, Card, CardContent, Box, Chip, CircularProgress } from '@mui/material';
 import {
   Warning as WarningIcon,
-  CheckCircle as CheckCircleIcon,
   Error as ErrorIcon,
   Rule as RuleIcon,
 } from '@mui/icons-material';
@@ -29,16 +28,6 @@ export default function DashboardPage() {
     { severity: 'HIGH', count: metrics.violations_by_severity.HIGH },
     { severity: 'CRITICAL', count: metrics.violations_by_severity.CRITICAL },
   ] : [];
-
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case 'CRITICAL': return 'error';
-      case 'HIGH': return 'warning';
-      case 'MEDIUM': return 'info';
-      case 'LOW': return 'success';
-      default: return 'default';
-    }
-  };
 
   return (
     <Box>

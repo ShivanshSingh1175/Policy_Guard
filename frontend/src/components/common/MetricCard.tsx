@@ -1,5 +1,5 @@
 import { Card, CardContent, Typography, Box, CircularProgress } from '@mui/material';
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 interface MetricCardProps {
   title: string;

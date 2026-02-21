@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '../client';
-import { ScanRun } from '../../types';
+// import { apiClient } from '../client';
+import type { ScanRun } from '../../types';
 
 // Mock data
 const mockScans: ScanRun[] = [

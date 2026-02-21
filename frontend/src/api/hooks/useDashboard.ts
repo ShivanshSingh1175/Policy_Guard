@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { apiClient } from '../client';
-import { DashboardMetrics } from '../../types';
+// import { apiClient } from '../client';
+import type { DashboardMetrics } from '../../types';
 
 // Mock data for development
 const mockDashboardData: DashboardMetrics = {

@@ -18,7 +18,7 @@ import {
   TextField,
 } from '@mui/material';
 import { useViolations, useUpdateViolation } from '../../api/hooks/useViolations';
-import { Violation } from '../../types';
+import type { Violation } from '../../types';
 
 export default function ViolationsPage() {
   const [severityFilter, setSeverityFilter] = useState('');

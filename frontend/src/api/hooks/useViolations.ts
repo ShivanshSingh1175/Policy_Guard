@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '../client';
-import { Violation } from '../../types';
+// import { apiClient } from '../client';
+import type { Violation } from '../../types';
 
 // Mock data
 const mockViolations: Violation[] = [
