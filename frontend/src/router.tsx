@@ -6,6 +6,9 @@ import ScansPage from './features/scans/ScansPage';
 import ViolationsPage from './features/violations/ViolationsPage';
 import AnalyticsPage from './features/analytics/AnalyticsPage';
 import LoginPage from './features/auth/LoginPage';
+import AccountsPage from './features/accounts/AccountsPage';
+import SettingsPage from './features/settings/SettingsPage';
+import CasesPage from './features/cases/CasesPage';
 
 // Protected route wrapper
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -54,8 +57,20 @@ export const router = createBrowserRouter([
         element: <ViolationsPage />,
       },
       {
+        path: 'accounts',
+        element: <AccountsPage />,
+      },
+      {
         path: 'analytics',
         element: <AnalyticsPage />,
+      },
+      {
+        path: 'settings',
+        element: <SettingsPage />,
+      },
+      {
+        path: 'cases',
+        element: <CasesPage />,
       },
     ],
   },

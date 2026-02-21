@@ -10,16 +10,47 @@ import {
   Switch,
   CircularProgress,
   Alert,
+  IconButton,
+  Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Paper,
+  Divider,
 } from '@mui/material';
-import { Upload as UploadIcon } from '@mui/icons-material';
-import { usePolicies, useUploadPolicy } from '../../api/hooks/usePolicies';
+import {
+  Upload as UploadIcon,
+  AutoFixHigh as ExtractIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Description as PolicyIcon,
+  Rule as RuleIcon
+} from '@mui/icons-material';
+import {
+  usePolicies,
+  useUploadPolicy,
+  useUpdatePolicy,
+  useDeletePolicy,
+  useExtractRules
+} from '../../api/hooks/usePolicies';
 import { useRules, useToggleRule } from '../../api/hooks/useRules';
+import { SeverityChip } from '../../components/common/SeverityChip';
+import { PageHeader } from '../../components/common/PageHeader';
 
 export default function PoliciesPage() {
   const [selectedPolicyId, setSelectedPolicyId] = useState<string | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingPolicy, setEditingPolicy] = useState<{ id: string, name: string, description: string } | null>(null);
+
   const { data: policies, isLoading: policiesLoading } = usePolicies();
-  const { data: rules, isLoading: rulesLoading } = useRules(selectedPolicyId || undefined);
+  const { data: rules, isLoading: rulesLoading, isFetching: rulesFetching } = useRules(selectedPolicyId || undefined);
+
   const uploadPolicy = useUploadPolicy();
+  const updatePolicy = useUpdatePolicy();
+  const deletePolicy = useDeletePolicy();
+  const extractRules = useExtractRules();
   const toggleRule = useToggleRule();
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -33,188 +64,325 @@ export default function PoliciesPage() {
     toggleRule.mutate({ id: ruleId, enabled });
   };
 
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case 'CRITICAL': return 'error';
-      case 'HIGH': return 'warning';
-      case 'MEDIUM': return 'info';
-      case 'LOW': return 'success';
-      default: return 'default';
+  const handleExtractRules = (policyId: string) => {
+    extractRules.mutate(policyId);
+  };
+
+  const handleEditPolicy = (policy: any) => {
+    setEditingPolicy({ id: policy.id, name: policy.name, description: policy.description || '' });
+    setEditDialogOpen(true);
+  };
+
+  const handleSavePolicy = () => {
+    if (editingPolicy) {
+      updatePolicy.mutate(editingPolicy, {
+        onSuccess: () => setEditDialogOpen(false)
+      });
+    }
+  };
+
+  const handleDeletePolicy = (policyId: string) => {
+    if (confirm('Are you sure you want to delete this policy and all its rules?')) {
+      deletePolicy.mutate(policyId, {
+        onSuccess: () => {
+          if (selectedPolicyId === policyId) setSelectedPolicyId(null);
+        }
+      });
     }
   };
 
   return (
-    <Box sx={{ animation: 'fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1)' }}>
-      <Typography
-        variant="h3"
-        gutterBottom
-        sx={{
-          fontWeight: 800,
-          background: 'linear-gradient(135deg, #2872A1 0%, #3A8BC2 100%)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          backgroundClip: 'text',
-          mb: 4,
-        }}
-      >
-        Policies & Rules
-      </Typography>
-
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={5}>
-          <Card
+    <Box>
+      <PageHeader
+        title="Policies & Rules"
+        subtitle="Upload policy documents and manage extracted compliance rules"
+        breadcrumbs={[
+          { label: 'Dashboard', href: '/app/dashboard' },
+          { label: 'Policies & Rules' },
+        ]}
+        action={
+          <Button
+            variant="contained"
+            startIcon={<UploadIcon />}
+            component="label"
+            disabled={uploadPolicy.isPending}
             sx={{
-              background: 'linear-gradient(135deg, rgba(40, 114, 161, 0.05) 0%, rgba(19, 47, 76, 1) 100%)',
+              px: 3,
+              py: 1.2,
+              boxShadow: '0 4px 14px 0 rgba(40, 114, 161, 0.39)',
             }}
           >
-            <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>Policies</Typography>
-                <Button
-                  variant="contained"
-                  startIcon={<UploadIcon />}
-                  component="label"
-                  disabled={uploadPolicy.isPending}
-                  sx={{
-                    background: 'linear-gradient(135deg, #2872A1 0%, #3A8BC2 100%)',
-                    '&:hover': {
-                      background: 'linear-gradient(135deg, #1D5A7F 0%, #2872A1 100%)',
-                    },
-                  }}
-                >
-                  Upload PDF
-                  <input
-                    type="file"
-                    hidden
-                    accept=".pdf"
-                    onChange={handleFileUpload}
-                  />
-                </Button>
+            {uploadPolicy.isPending ? 'Uploading...' : 'Upload Policy PDF'}
+            <input
+              type="file"
+              hidden
+              accept=".pdf"
+              onChange={handleFileUpload}
+            />
+          </Button>
+        }
+      />
+
+      <Grid container spacing={3}>
+        {/* Policies Column */}
+        <Grid item xs={12} md={4}>
+          <Card sx={{ height: '100%' }}>
+            <CardContent sx={{ p: 0 }}>
+              <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1, borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
+                <PolicyIcon color="primary" />
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>Policy Documents</Typography>
               </Box>
 
-              {uploadPolicy.isSuccess && (
-                <Alert severity="success" sx={{ mb: 2 }}>
-                  Policy uploaded successfully!
-                </Alert>
-              )}
-
               {policiesLoading ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-                  <CircularProgress />
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+                  <CircularProgress size={32} />
                 </Box>
               ) : (
-                <Box>
-                  {policies?.map((policy) => (
-                    <Card
-                      key={policy.id}
-                      sx={{
-                        mb: 1,
-                        cursor: 'pointer',
-                        bgcolor: selectedPolicyId === policy.id ? 'rgba(40, 114, 161, 0.2)' : 'background.paper',
-                        border: selectedPolicyId === policy.id ? '2px solid #2872A1' : '1px solid rgba(255, 255, 255, 0.08)',
-                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                        '&:hover': {
-                          transform: 'translateX(4px)',
-                          borderColor: '#2872A1',
-                          boxShadow: '0px 4px 12px rgba(40, 114, 161, 0.2)',
-                        },
-                      }}
-                      onClick={() => setSelectedPolicyId(policy.id)}
-                    >
-                      <CardContent>
-                        <Typography variant="subtitle1">{policy.name}</Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {policy.description}
-                        </Typography>
-                        <Box sx={{ mt: 1 }}>
-                          <Chip label={`v${policy.version}`} size="small" sx={{ mr: 1 }} />
-                          <Typography variant="caption" color="text.secondary">
-                            {new Date(policy.created_at).toLocaleDateString()}
-                          </Typography>
-                        </Box>
-                      </CardContent>
-                    </Card>
-                  ))}
+                <Box sx={{ p: 1 }}>
+                  {policies?.length === 0 ? (
+                    <Box sx={{ py: 6, px: 2, textAlign: 'center' }}>
+                      <Typography variant="body2" color="text.secondary">
+                        No policies uploaded yet.
+                      </Typography>
+                    </Box>
+                  ) : (
+                    policies?.map((policy) => (
+                      <Card
+                        key={policy.id}
+                        elevation={0}
+                        sx={{
+                          mb: 1,
+                          cursor: 'pointer',
+                          position: 'relative',
+                          bgcolor: selectedPolicyId === policy.id ? 'rgba(40, 114, 161, 0.08)' : 'transparent',
+                          border: selectedPolicyId === policy.id ? '1px solid #2872A1' : '1px solid transparent',
+                          '&:hover': {
+                            bgcolor: 'rgba(40, 114, 161, 0.04)',
+                            '& .policy-actions': { opacity: 1 }
+                          },
+                        }}
+                        onClick={() => setSelectedPolicyId(policy.id)}
+                      >
+                        <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            <Box sx={{ pr: 6 }}>
+                              <Typography variant="subtitle1" sx={{ fontWeight: 600, lineHeight: 1.2, mb: 0.5 }}>
+                                {policy.name}
+                              </Typography>
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                                sx={{
+                                  display: '-webkit-box',
+                                  WebkitLineClamp: 2,
+                                  WebkitBoxOrient: 'vertical',
+                                  overflow: 'hidden',
+                                  fontSize: '0.8rem'
+                                }}
+                              >
+                                {policy.description}
+                              </Typography>
+                            </Box>
+
+                            <Box
+                              className="policy-actions"
+                              sx={{
+                                position: 'absolute',
+                                right: 8,
+                                top: 8,
+                                opacity: 0,
+                                transition: 'opacity 0.2s',
+                                display: 'flex',
+                                gap: 0.5
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Tooltip title="Edit Policy">
+                                <IconButton size="small" onClick={() => handleEditPolicy(policy)}>
+                                  <EditIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="Delete Policy">
+                                <IconButton size="small" color="error" onClick={() => handleDeletePolicy(policy.id)}>
+                                  <DeleteIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            </Box>
+                          </Box>
+
+                          <Box sx={{ mt: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Chip label={`v${policy.version}`} size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
+                            <Typography variant="caption" color="text.secondary">
+                              {new Date(policy.created_at).toLocaleDateString()}
+                            </Typography>
+                          </Box>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
                 </Box>
               )}
             </CardContent>
           </Card>
         </Grid>
 
-        <Grid item xs={12} md={7}>
-          <Card
-            sx={{
-              background: 'linear-gradient(135deg, rgba(40, 114, 161, 0.05) 0%, rgba(19, 47, 76, 1) 100%)',
-            }}
-          >
-            <CardContent>
-              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
-                Rules
-              </Typography>
+        {/* Rules Column */}
+        <Grid item xs={12} md={8}>
+          <Card sx={{ height: '100%' }}>
+            <CardContent sx={{ p: 0 }}>
+              <Box sx={{
+                p: 2,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                borderBottom: '1px solid rgba(0,0,0,0.08)'
+              }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <RuleIcon color="primary" />
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    Extracted Rules & Mapping
+                  </Typography>
+                </Box>
 
-              {rulesLoading ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-                  <CircularProgress />
+                {selectedPolicyId && (
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={extractRules.isPending ? <CircularProgress size={16} /> : <ExtractIcon />}
+                    disabled={extractRules.isPending}
+                    onClick={() => handleExtractRules(selectedPolicyId)}
+                  >
+                    {extractRules.isPending ? 'Extracting...' : 'Extract Rules'}
+                  </Button>
+                )}
+              </Box>
+
+              {!selectedPolicyId ? (
+                <Box sx={{ py: 12, textAlign: 'center' }}>
+                  <Typography variant="body1" color="text.secondary">
+                    Select a policy to view its compliance rules
+                  </Typography>
+                </Box>
+              ) : rulesLoading ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 12 }}>
+                  <CircularProgress size={40} />
                 </Box>
               ) : (
-                <Box sx={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                      <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                        <th style={{ padding: '12px', textAlign: 'left' }}>Name</th>
-                        <th style={{ padding: '12px', textAlign: 'left' }}>Collection</th>
-                        <th style={{ padding: '12px', textAlign: 'left' }}>Severity</th>
-                        <th style={{ padding: '12px', textAlign: 'left' }}>Enabled</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {rules?.map((rule) => (
-                        <tr
-                          key={rule.id}
-                          style={{
-                            borderBottom: '1px solid rgba(255,255,255,0.05)',
-                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = 'rgba(40, 114, 161, 0.1)';
-                            e.currentTarget.style.transform = 'translateX(4px)';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = 'transparent';
-                            e.currentTarget.style.transform = 'translateX(0)';
-                          }}
-                        >
-                          <td style={{ padding: '12px' }}>
-                            <Typography variant="body2">{rule.name}</Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {rule.description}
-                            </Typography>
-                          </td>
-                          <td style={{ padding: '12px' }}>{rule.collection}</td>
-                          <td style={{ padding: '12px' }}>
-                            <Chip
-                              label={rule.severity}
-                              color={getSeverityColor(rule.severity) as any}
-                              size="small"
-                            />
-                          </td>
-                          <td style={{ padding: '12px' }}>
-                            <Switch
-                              checked={rule.enabled}
-                              onChange={(e) => handleToggleRule(rule.id, e.target.checked)}
-                              disabled={toggleRule.isPending}
-                            />
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <Box sx={{ p: 0 }}>
+                  {rules?.length === 0 ? (
+                    <Box sx={{ py: 10, px: 3, textAlign: 'center' }}>
+                      <Typography variant="h6" gutterBottom>No rules extracted yet</Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                        Use our AI engine to transform this policy document into executable monitoring rules.
+                      </Typography>
+                      <Button
+                        variant="contained"
+                        startIcon={<ExtractIcon />}
+                        onClick={() => handleExtractRules(selectedPolicyId)}
+                        disabled={extractRules.isPending}
+                      >
+                        Run AI Rule Extraction
+                      </Button>
+                    </Box>
+                  ) : (
+                    <Box sx={{ overflowX: 'auto' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead>
+                          <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
+                            <th style={{ padding: '16px', textAlign: 'left', color: 'rgba(0,0,0,0.54)', fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase' }}>Rule Name</th>
+                            <th style={{ padding: '16px', textAlign: 'left', color: 'rgba(0,0,0,0.54)', fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase' }}>Mapping</th>
+                            <th style={{ padding: '16px', textAlign: 'left', color: 'rgba(0,0,0,0.54)', fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase' }}>Severity</th>
+                            <th style={{ padding: '16px', textAlign: 'center', color: 'rgba(0,0,0,0.54)', fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase' }}>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {rules?.map((rule) => (
+                            <tr
+                              key={rule.id}
+                              style={{
+                                borderBottom: '1px solid rgba(0,0,0,0.04)',
+                                transition: 'background-color 0.2s',
+                              }}
+                            >
+                              <td style={{ padding: '16px' }}>
+                                <Typography variant="body2" sx={{ fontWeight: 600 }}>{rule.name}</Typography>
+                                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', maxWidth: 300 }}>
+                                  {rule.description}
+                                </Typography>
+                              </td>
+                              <td style={{ padding: '16px' }}>
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                  <Chip
+                                    label={rule.framework || 'AML'}
+                                    size="small"
+                                    sx={{ width: 'fit-content', height: 18, fontSize: '0.65rem', fontWeight: 700, bgcolor: 'rgba(40, 114, 161, 0.1)', color: '#2872A1' }}
+                                  />
+                                  <Typography variant="caption" sx={{ fontFamily: 'monospace', fontWeight: 600 }}>
+                                    {rule.control_id || '-'}
+                                  </Typography>
+                                </Box>
+                              </td>
+                              <td style={{ padding: '16px' }}>
+                                <SeverityChip severity={rule.severity as any} />
+                              </td>
+                              <td style={{ padding: '16px', textAlign: 'center' }}>
+                                <Switch
+                                  size="small"
+                                  checked={rule.enabled}
+                                  onChange={(e) => handleToggleRule(rule.id, e.target.checked)}
+                                  disabled={toggleRule.isPending}
+                                />
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </Box>
+                  )}
                 </Box>
               )}
             </CardContent>
           </Card>
         </Grid>
       </Grid>
+
+      {/* Edit Dialog */}
+      <Dialog
+        open={editDialogOpen}
+        onClose={() => setEditDialogOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle sx={{ fontWeight: 700 }}>Edit Policy Metadata</DialogTitle>
+        <DialogContent dividers>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, py: 1 }}>
+            <TextField
+              label="Policy Name"
+              fullWidth
+              value={editingPolicy?.name || ''}
+              onChange={(e) => setEditingPolicy(prev => prev ? { ...prev, name: e.target.value } : null)}
+            />
+            <TextField
+              label="Description"
+              fullWidth
+              multiline
+              rows={4}
+              value={editingPolicy?.description || ''}
+              onChange={(e) => setEditingPolicy(prev => prev ? { ...prev, description: e.target.value } : null)}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 2.5 }}>
+          <Button onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+          <Button
+            variant="contained"
+            onClick={handleSavePolicy}
+            disabled={updatePolicy.isPending}
+          >
+            {updatePolicy.isPending ? 'Saving...' : 'Save Changes'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

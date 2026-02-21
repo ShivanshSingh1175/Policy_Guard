@@ -13,10 +13,11 @@ import {
   Switch,
   Alert,
   CircularProgress,
-  Chip,
 } from '@mui/material';
 import { PlayArrow as PlayArrowIcon } from '@mui/icons-material';
 import { useScans, useRunScan } from '../../api/hooks/useScans';
+import { StatusChip } from '../../components/common/StatusChip';
+import { PageHeader } from '../../components/common/PageHeader';
 
 export default function ScansPage() {
   const [collection, setCollection] = useState('all');
@@ -30,21 +31,31 @@ export default function ScansPage() {
   };
 
   return (
-    <Box sx={{ animation: 'fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1)' }}>
-      <Typography
-        variant="h3"
-        gutterBottom
-        sx={{
-          fontWeight: 800,
-          background: 'linear-gradient(135deg, #2872A1 0%, #3A8BC2 100%)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          backgroundClip: 'text',
-          mb: 4,
-        }}
-      >
-        Scans
-      </Typography>
+    <Box>
+      <PageHeader
+        title="Scans"
+        subtitle="Run compliance scans and review scan history"
+        breadcrumbs={[
+          { label: 'Dashboard', href: '/app/dashboard' },
+          { label: 'Scans' },
+        ]}
+        action={
+          <Button
+            variant="contained"
+            startIcon={<PlayArrowIcon />}
+            onClick={handleRunScan}
+            disabled={runScan.isPending}
+            sx={{
+              background: 'linear-gradient(135deg, #2872A1 0%, #3A8BC2 100%)',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #1D5A7F 0%, #2872A1 100%)',
+              },
+            }}
+          >
+            {runScan.isPending ? 'Running...' : 'Run Scan Now'}
+          </Button>
+        }
+      />
 
       <Card
         sx={{
@@ -54,7 +65,7 @@ export default function ScansPage() {
       >
         <CardContent>
           <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
-            Run New Scan
+            Scan Configuration
           </Typography>
 
           <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -81,21 +92,6 @@ export default function ScansPage() {
               }
               label="Only enabled rules"
             />
-
-            <Button
-              variant="contained"
-              startIcon={<PlayArrowIcon />}
-              onClick={handleRunScan}
-              disabled={runScan.isPending}
-              sx={{
-                background: 'linear-gradient(135deg, #2872A1 0%, #3A8BC2 100%)',
-                '&:hover': {
-                  background: 'linear-gradient(135deg, #1D5A7F 0%, #2872A1 100%)',
-                },
-              }}
-            >
-              {runScan.isPending ? 'Running...' : 'Run Scan'}
-            </Button>
           </Box>
 
           {runScan.isSuccess && (
@@ -155,10 +151,8 @@ export default function ScansPage() {
                         {new Date(scan.started_at).toLocaleString()}
                       </td>
                       <td style={{ padding: '12px' }}>
-                        <Chip
-                          label={scan.status}
-                          color={scan.status === 'COMPLETED' ? 'success' : 'warning'}
-                          size="small"
+                        <StatusChip 
+                          status={scan.status as any} 
                         />
                       </td>
                       <td style={{ padding: '12px' }}>{scan.rules_checked}</td>

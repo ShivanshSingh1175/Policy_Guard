@@ -38,7 +38,7 @@ class RuleScanResult(BaseModel):
 
 class ScanRun(BaseModel):
     """Model for a scan run document"""
-    id: str = Field(alias="_id")
+    id: str = Field(validation_alias="_id")
     company_id: str
     status: ScanStatus
     started_at: datetime
@@ -49,11 +49,10 @@ class ScanRun(BaseModel):
     rule_results: List[RuleScanResult]
     error_message: Optional[str] = None
     
-    class Config:
-        populate_by_name = True
-        json_encoders = {
-            datetime: lambda v: v.isoformat()
-        }
+    model_config = {
+        "populate_by_name": True,
+        "from_attributes": True
+    }
 
 
 class ScanSummary(BaseModel):

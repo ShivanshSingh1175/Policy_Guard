@@ -20,17 +20,17 @@ async def test_llm_connection():
     Test connection to Gemini API
     """
     try:
-        is_connected = await test_gemini_connection()
-        if is_connected:
+        result = await test_gemini_connection()
+        if result["status"]:
             return {
                 "status": "success",
-                "message": "Successfully connected to Google Gemini API",
+                "message": result["message"],
                 "model": "gemini-pro"
             }
         else:
             return {
                 "status": "error",
-                "message": "Failed to connect to Gemini API"
+                "message": result["message"]
             }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Connection test failed: {str(e)}")

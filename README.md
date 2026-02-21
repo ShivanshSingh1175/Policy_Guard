@@ -45,15 +45,18 @@ PolicyGuard stands out from typical policy/BRD agents by focusing on **operation
 | 5 | **Violations Workflow** | ✔ | Filter by rule/severity/status/date, update status (Open/Confirmed/Dismissed), add notes |
 | 6 | **Account Risk Scoring** | ✔ | Weighted risk score (High=3, Med=2, Low=1), risk badges (Low/Med/High/Critical), violation history |
 
-### B) Smart Compliance Features (Implemented/Planned)
+### B) Smart Compliance & Enterprise Features (Implemented ✔)
 
 | # | Feature | Status | Description |
 |---|---------|--------|-------------|
-| 7 | **Smart Remediation** | ✔ | LLM suggests 1-3 remediation actions per violation (e.g., "Request additional KYC docs") |
-| 8 | **Real-Time Alerts** | ✔ | Email/Slack webhooks trigger on high-severity violations, configurable per company |
-| 9 | **Impact Analysis** | ✔ | Simulate rule changes on historical data (e.g., "What if threshold was $5K instead of $10K?") |
-| 10 | **Audit Packs** | ✔ | Export scan runs as CSV/JSON with rule versions, timestamps, violation snapshots |
-| 11 | **Multi-Policy Framework** | ☐ | Roadmap: Support multiple policy sets (AML, KYC, Sanctions) with dataset switching |
+| 7 | **Case Management** | ✔ | Investigate violations, create cases, assign users, track resolution status (Open/In Review/Closed) |
+| 8 | **Control Health & Heatmaps** | ✔ | Analytics on rule effectiveness, violation rates per control, and top risk heatmaps |
+| 9 | **Framework Mapping** | ✔ | Map rules to frameworks (AML, KYC) and control IDs (e.g., AML-CTR-01) for reporting |
+| 10 | **Team Collaboration** | ✔ | Audit trail via comments on violations and cases; user assignments for investigations |
+| 11 | **Smart Remediation** | ✔ | LLM suggests 1-3 remediation actions per violation (e.g., "Request additional KYC docs") |
+| 12 | **Real-Time Alerts** | ✔ | Email/Slack webhooks trigger on high-severity violations, configurable per company |
+| 13 | **Impact Analysis** | ✔ | Simulate rule changes on historical data (e.g., "What if threshold was $5K instead of $10K?") |
+| 14 | **Audit Packs** | ✔ | Export scan runs as CSV/JSON with rule versions, timestamps, violation snapshots |
 
 ---
 

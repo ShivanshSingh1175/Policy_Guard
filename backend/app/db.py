@@ -52,19 +52,33 @@ async def create_indexes():
     # Policies collection indexes
     await db.policies.create_index("created_at")
     await db.policies.create_index("name")
+    await db.policies.create_index("company_id")
     
     # Rules collection indexes
     await db.rules.create_index([("collection", 1), ("enabled", 1)])
     await db.rules.create_index("policy_id")
+    await db.rules.create_index("company_id")
+    await db.rules.create_index("framework")
+    await db.rules.create_index("control_id")
     
     # Scan runs collection indexes
     await db.scan_runs.create_index("started_at")
     await db.scan_runs.create_index("status")
+    await db.scan_runs.create_index("company_id")
     
     # Violations collection indexes
     await db.violations.create_index([("scan_run_id", 1), ("rule_id", 1)])
     await db.violations.create_index("status")
     await db.violations.create_index("severity")
     await db.violations.create_index("created_at")
+    await db.violations.create_index("company_id")
+    await db.violations.create_index("assigned_to_user_id")
+    
+    # Cases collection indexes
+    await db.cases.create_index("company_id")
+    await db.cases.create_index("status")
+    await db.cases.create_index("severity")
+    await db.cases.create_index("assigned_to_user_id")
+    await db.cases.create_index("created_at")
     
     print("Database indexes created successfully")

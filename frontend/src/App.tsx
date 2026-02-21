@@ -1,8 +1,7 @@
-import { ThemeProvider, CssBaseline } from '@mui/material';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from 'react-router-dom';
-import { theme } from './theme';
 import { router } from './router';
+import ErrorBoundary from './ErrorBoundary';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -16,12 +15,11 @@ const queryClient = new QueryClient({
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
         <RouterProvider router={router} />
-      </ThemeProvider>
-    </QueryClientProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 

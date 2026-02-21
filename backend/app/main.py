@@ -7,7 +7,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from app.db import connect_to_mongo, close_mongo_connection
-from app.routes import policies, rules, scans, violations, test_llm, dashboard, auth, accounts, settings
+from app.routes import (
+    policies, rules, scans, violations, test_llm, dashboard, 
+    auth, accounts, settings, cases, analytics
+)
 
 
 @asynccontextmanager
@@ -43,6 +46,8 @@ app.include_router(policies.router, prefix="/policies", tags=["Policies"])
 app.include_router(rules.router, prefix="/rules", tags=["Rules"])
 app.include_router(scans.router, prefix="/scans", tags=["Scans"])
 app.include_router(violations.router, prefix="/violations", tags=["Violations"])
+app.include_router(cases.router, prefix="/cases", tags=["Cases"])
+app.include_router(analytics.router, prefix="/analytics", tags=["Analytics"])
 app.include_router(accounts.router, tags=["Accounts"])
 app.include_router(settings.router, tags=["Settings"])
 app.include_router(test_llm.router, prefix="/test-llm", tags=["LLM Testing"])

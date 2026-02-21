@@ -4,13 +4,33 @@ Account and risk scoring routes
 from fastapi import APIRouter, HTTPException, Depends
 from typing import List
 from bson import ObjectId
+from datetime import datetime
 
 from app.db import get_database
-from app.models.account import AccountDetail, AccountRiskScore, RiskLevel
+from app.models.account import AccountDetail, AccountRiskScore, RiskLevel, AccountSummary
 from app.models.user import TokenData
 from app.routes.auth import get_current_user
 
 router = APIRouter(prefix="/accounts", tags=["Accounts"])
+
+
+@router.get("/", response_model=List[AccountSummary])
+async def list_accounts(
+    limit: int = 50,
+    offset: int = 0,
+    current_user: TokenData = Depends(get_current_user)
+):
+    """
+    List all accounts for the current company
+    """
+    db = get_database()
+    
+    cursor = db.accounts.find({
+        "company_id": current_user.company_id
+    }).skip(offset).limit(limit)
+    
+    accounts = await cursor.to_list(length=limit)
+    return accounts
 
 
 @router.get("/{account_id}", response_model=AccountDetail)
@@ -32,11 +52,15 @@ async def get_account_detail(
     if not account_data:
         raise HTTPException(status_code=404, detail="Account not found")
     
-    # Get violations for this account
+    # Get violations for this account (checking various potential account fields)
     violations = await db.violations.find({
         "company_id": current_user.company_id,
-        "document_data.account_id": account_id
-    }).limit(10).to_list(10)
+        "$or": [
+            {"document_data.account_id": account_id},
+            {"document_data.src_account": account_id},
+            {"document_data.dst_account": account_id}
+        ]
+    }).sort("created_at", -1).limit(20).to_list(20)
     
     # Calculate risk score
     high_count = sum(1 for v in violations if v.get("severity") == "HIGH")
@@ -75,6 +99,3 @@ async def get_account_detail(
         } for v in violations],
         transaction_count=account_data.get("transaction_count", 0)
     )
-
-
-from datetime import datetime

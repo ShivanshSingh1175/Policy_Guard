@@ -1,0 +1,16 @@
+﻿Companies: 17
+Users: 17
+Policies: 10
+Rules: 9
+Transactions: 1000
+Sample Transaction Company ID: 6999f3900781ae402a67e683
+Sample Transaction Fields: ['_id', 'transaction_id', 'timestamp', 'amount', 'currency', 'transaction_type', 'src_account', 'dst_account', 'description', 'status', 'label', 'company_id']
+
+Checking first 5 rules:
+Rule: High-Value Cash Transactions | Collection: transactions | Has Query: False
+Rule: Large Wire Transfers | Collection: transactions | Has Query: False
+Rule: Structuring Detection | Collection: transactions | Has Query: False
+Rule: Large Cash Transaction Detection | Collection: transactions | Has Query: True
+  -> Manual Query (transactions): 0 matches
+Rule: Structuring Detection | Collection: transactions | Has Query: True
+  -> Manual Query (transactions): 0 matches

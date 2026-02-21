@@ -1,16 +1,17 @@
 """
 Policy management endpoints
 """
-from fastapi import APIRouter, UploadFile, File, HTTPException, Form
+from fastapi import APIRouter, UploadFile, File, HTTPException, Form, Depends
 from typing import List, Optional
 from datetime import datetime
 from bson import ObjectId
 
 from app.db import get_database
-from app.models.policy import PolicyOut, PolicySummary
+from app.models.policy import PolicyOut, PolicySummary, PolicyUpdate
 from app.models.rule import RuleOut
 from app.services.pdf_service import extract_text_from_pdf
 from app.services.llm_service import generate_rules_from_policy
+from app.routes.auth import get_current_user, TokenData
 
 router = APIRouter()
 
@@ -20,7 +21,8 @@ async def upload_policy(
     file: UploadFile = File(...),
     name: str = Form(...),
     description: Optional[str] = Form(None),
-    version: str = Form("1.0")
+    version: str = Form("1.0"),
+    current_user: TokenData = Depends(get_current_user)
 ):
     """
     Upload a policy PDF, extract text, and store in database
@@ -46,13 +48,16 @@ async def upload_policy(
     now = datetime.utcnow()
     
     policy_doc = {
+        "company_id": current_user.company_id,
         "name": name,
         "description": description,
         "version": version,
+        "file_name": file.filename,
         "extracted_text": extracted_text,
         "text_length": len(extracted_text),
         "created_at": now,
-        "updated_at": now
+        "updated_at": now,
+        "created_by": current_user.user_id
     }
     
     result = await db.policies.insert_one(policy_doc)
@@ -62,13 +67,20 @@ async def upload_policy(
 
 
 @router.get("/", response_model=List[PolicySummary])
-async def list_policies(limit: int = 50, offset: int = 0):
+async def list_policies(
+    limit: int = 50,
+    offset: int = 0,
+    current_user: TokenData = Depends(get_current_user)
+):
     """
-    List all policies with pagination
+    List all policies for the current company with pagination
     """
     db = get_database()
     
-    cursor = db.policies.find().sort("created_at", -1).skip(offset).limit(limit)
+    cursor = db.policies.find(
+        {"company_id": current_user.company_id}
+    ).sort("created_at", -1).skip(offset).limit(limit)
+    
     policies = await cursor.to_list(length=limit)
     
     # Convert ObjectId to string
@@ -79,7 +91,10 @@ async def list_policies(limit: int = 50, offset: int = 0):
 
 
 @router.get("/{policy_id}", response_model=PolicyOut)
-async def get_policy(policy_id: str):
+async def get_policy(
+    policy_id: str,
+    current_user: TokenData = Depends(get_current_user)
+):
     """
     Get a specific policy by ID
     """
@@ -88,7 +103,10 @@ async def get_policy(policy_id: str):
     if not ObjectId.is_valid(policy_id):
         raise HTTPException(status_code=400, detail="Invalid policy ID format")
     
-    policy = await db.policies.find_one({"_id": ObjectId(policy_id)})
+    policy = await db.policies.find_one({
+        "_id": ObjectId(policy_id),
+        "company_id": current_user.company_id
+    })
     
     if not policy:
         raise HTTPException(status_code=404, detail="Policy not found")
@@ -97,10 +115,45 @@ async def get_policy(policy_id: str):
     return PolicyOut(**policy)
 
 
+@router.patch("/{policy_id}", response_model=PolicyOut)
+async def update_policy(
+    policy_id: str,
+    update: PolicyUpdate,
+    current_user: TokenData = Depends(get_current_user)
+):
+    """
+    Update policy metadata
+    """
+    db = get_database()
+    
+    if not ObjectId.is_valid(policy_id):
+        raise HTTPException(status_code=400, detail="Invalid policy ID format")
+    
+    # Build update document
+    update_data = {k: v for k, v in update.model_dump().items() if v is not None}
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No fields to update")
+    
+    update_data["updated_at"] = datetime.utcnow()
+    
+    result = await db.policies.find_one_and_update(
+        {"_id": ObjectId(policy_id), "company_id": current_user.company_id},
+        {"$set": update_data},
+        return_document=True
+    )
+    
+    if not result:
+        raise HTTPException(status_code=404, detail="Policy not found")
+    
+    result["_id"] = str(result["_id"])
+    return PolicyOut(**result)
+
+
 @router.post("/{policy_id}/extract-rules", response_model=List[RuleOut], status_code=201)
 async def extract_rules_from_policy(
     policy_id: str,
-    schema_hint: Optional[str] = None
+    schema_hint: Optional[str] = None,
+    current_user: TokenData = Depends(get_current_user)
 ):
     """
     Use LLM to generate rules from policy text and store them
@@ -110,8 +163,12 @@ async def extract_rules_from_policy(
     if not ObjectId.is_valid(policy_id):
         raise HTTPException(status_code=400, detail="Invalid policy ID format")
     
-    # Fetch policy
-    policy = await db.policies.find_one({"_id": ObjectId(policy_id)})
+    # Fetch policy (with company_id check)
+    policy = await db.policies.find_one({
+        "_id": ObjectId(policy_id),
+        "company_id": current_user.company_id
+    })
+    
     if not policy:
         raise HTTPException(status_code=404, detail="Policy not found")
     
@@ -122,7 +179,11 @@ async def extract_rules_from_policy(
             schema_hint
         )
     except Exception as e:
+        print(f"LLM rule generation error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to generate rules: {str(e)}")
+    
+    if not rules_data:
+        raise HTTPException(status_code=400, detail="No rules could be generated from the policy")
     
     # Store rules in database
     now = datetime.utcnow()
@@ -130,6 +191,7 @@ async def extract_rules_from_policy(
     
     for rule_data in rules_data:
         rule_doc = {
+            "company_id": current_user.company_id,
             "policy_id": policy_id,
             "name": rule_data.name,
             "description": rule_data.description,
@@ -138,6 +200,8 @@ async def extract_rules_from_policy(
             "severity": rule_data.severity,
             "enabled": rule_data.enabled,
             "tags": rule_data.tags,
+            "framework": rule_data.framework if hasattr(rule_data, 'framework') else "AML",
+            "control_id": rule_data.control_id if hasattr(rule_data, 'control_id') else None,
             "created_at": now,
             "updated_at": now
         }
@@ -150,7 +214,10 @@ async def extract_rules_from_policy(
 
 
 @router.delete("/{policy_id}", status_code=204)
-async def delete_policy(policy_id: str):
+async def delete_policy(
+    policy_id: str,
+    current_user: TokenData = Depends(get_current_user)
+):
     """
     Delete a policy and its associated rules
     """
@@ -159,13 +226,19 @@ async def delete_policy(policy_id: str):
     if not ObjectId.is_valid(policy_id):
         raise HTTPException(status_code=400, detail="Invalid policy ID format")
     
-    # Delete policy
-    result = await db.policies.delete_one({"_id": ObjectId(policy_id)})
+    # Delete policy (with company_id check)
+    result = await db.policies.delete_one({
+        "_id": ObjectId(policy_id),
+        "company_id": current_user.company_id
+    })
     
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Policy not found")
     
     # Delete associated rules
-    await db.rules.delete_many({"policy_id": policy_id})
+    await db.rules.delete_many({
+        "policy_id": policy_id,
+        "company_id": current_user.company_id
+    })
     
     return None

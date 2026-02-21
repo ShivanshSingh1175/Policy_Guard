@@ -1,0 +1,4 @@
+﻿
+Image Name                     PID Session Name        Session#    Mem Usage Status          User Name                                              CPU Time Window Title                                                            
+========================= ======== ================ =========== ============ =============== ================================================== ============ ========================================================================
+python.exe                    2144 Console                    5        748 K Unknown         SHIVANSHOWNSTHI\Shivansh Singh                          0:00:00 N/A                                                                     

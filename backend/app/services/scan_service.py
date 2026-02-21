@@ -12,6 +12,7 @@ from app.models.scan import ScanStatus, ScanSummary, RuleScanResult
 
 
 async def run_scan(
+    company_id: str,
     collections: Optional[List[str]] = None,
     rule_ids: Optional[List[str]] = None
 ) -> ScanSummary:
@@ -19,6 +20,7 @@ async def run_scan(
     Execute compliance scan across specified collections
     
     Args:
+        company_id: Company ID for multi-tenant isolation
         collections: Optional list of collection names to scan
         rule_ids: Optional list of specific rule IDs to execute
         
@@ -28,8 +30,11 @@ async def run_scan(
     db = get_database()
     scan_start_time = time.time()
     
-    # Build rule query filter
-    rule_filter: Dict[str, Any] = {"enabled": True}
+    # Build rule query filter with company_id
+    rule_filter: Dict[str, Any] = {
+        "enabled": True,
+        "company_id": company_id
+    }
     if collections:
         rule_filter["collection"] = {"$in": collections}
     if rule_ids:
@@ -42,6 +47,7 @@ async def run_scan(
     if not rules:
         # Create empty scan run
         scan_run_doc = {
+            "company_id": company_id,
             "status": ScanStatus.COMPLETED,
             "started_at": datetime.utcnow(),
             "completed_at": datetime.utcnow(),
@@ -63,6 +69,7 @@ async def run_scan(
     
     # Create scan run document
     scan_run_doc = {
+        "company_id": company_id,
         "status": ScanStatus.RUNNING,
         "started_at": datetime.utcnow(),
         "completed_at": None,
@@ -167,7 +174,12 @@ async def execute_rule(
     
     # Execute query
     target_collection = db[collection_name]
-    cursor = target_collection.find(query)
+    
+    # Ensure query is scoped by company_id
+    scoped_query = query.copy()
+    scoped_query["company_id"] = rule["company_id"]
+    
+    cursor = target_collection.find(scoped_query)
     matching_docs = await cursor.to_list(length=None)
     
     # Create violation records
@@ -176,6 +188,7 @@ async def execute_rule(
     
     for doc in matching_docs:
         violation_doc = {
+            "company_id": rule["company_id"],
             "scan_run_id": scan_run_id,
             "rule_id": str(rule["_id"]),
             "rule_name": rule["name"],

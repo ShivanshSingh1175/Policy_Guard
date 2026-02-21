@@ -1,0 +1,26 @@
+﻿
+Indexes for transactions:
+  SON([('v', 2), ('key', SON([('_id', 1)])), ('name', '_id_')])
+  SON([('v', 2), ('key', SON([('transaction_id', 1)])), ('name', 'transaction_id_1'), ('unique', True)])
+  SON([('v', 2), ('key', SON([('amount', 1)])), ('name', 'amount_1')])
+  SON([('v', 2), ('key', SON([('timestamp', 1)])), ('name', 'timestamp_1')])
+  SON([('v', 2), ('key', SON([('src_account', 1)])), ('name', 'src_account_1')])
+
+Indexes for accounts:
+  SON([('v', 2), ('key', SON([('_id', 1)])), ('name', '_id_')])
+  SON([('v', 2), ('key', SON([('account_id', 1)])), ('name', 'account_id_1'), ('unique', True)])
+  SON([('v', 2), ('key', SON([('customer_id', 1)])), ('name', 'customer_id_1')])
+
+Indexes for rules:
+  SON([('v', 2), ('key', SON([('_id', 1)])), ('name', '_id_')])
+  SON([('v', 2), ('key', SON([('collection', 1), ('enabled', 1)])), ('name', 'collection_1_enabled_1')])
+  SON([('v', 2), ('key', SON([('policy_id', 1)])), ('name', 'policy_id_1')])
+  SON([('v', 2), ('key', SON([('company_id', 1)])), ('name', 'company_id_1')])
+  SON([('v', 2), ('key', SON([('framework', 1)])), ('name', 'framework_1')])
+  SON([('v', 2), ('key', SON([('control_id', 1)])), ('name', 'control_id_1')])
+
+Indexes for policies:
+  SON([('v', 2), ('key', SON([('_id', 1)])), ('name', '_id_')])
+  SON([('v', 2), ('key', SON([('created_at', 1)])), ('name', 'created_at_1')])
+  SON([('v', 2), ('key', SON([('name', 1)])), ('name', 'name_1')])
+  SON([('v', 2), ('key', SON([('company_id', 1)])), ('name', 'company_id_1')])

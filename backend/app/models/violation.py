@@ -15,9 +15,17 @@ class ViolationStatus(str, Enum):
     FALSE_POSITIVE = "FALSE_POSITIVE"
 
 
+class ViolationComment(BaseModel):
+    """Comment on a violation"""
+    user_id: str
+    user_name: str
+    comment: str
+    created_at: datetime
+
+
 class Violation(BaseModel):
     """Model for a violation document"""
-    id: str = Field(alias="_id")
+    id: str = Field(validation_alias="_id")
     company_id: str
     scan_run_id: str
     rule_id: str
@@ -31,13 +39,15 @@ class Violation(BaseModel):
     reviewed_by: Optional[str] = None
     reviewed_at: Optional[datetime] = None
     remediation_suggestions: Optional[List[Dict[str, Any]]] = None
+    assigned_to_user_id: Optional[str] = None
+    assigned_to_user_name: Optional[str] = None
+    comments: List[ViolationComment] = Field(default_factory=list)
     created_at: datetime
     
-    class Config:
-        populate_by_name = True
-        json_encoders = {
-            datetime: lambda v: v.isoformat()
-        }
+    model_config = {
+        "populate_by_name": True,
+        "from_attributes": True
+    }
 
 
 class ViolationUpdate(BaseModel):
@@ -55,3 +65,14 @@ class ViolationFilters(BaseModel):
     scan_run_id: Optional[str] = None
     limit: int = Field(default=50, ge=1, le=200)
     offset: int = Field(default=0, ge=0)
+
+
+class CommentIn(BaseModel):
+    """Request model for adding a comment"""
+    comment: str = Field(..., min_length=1, max_length=2000)
+
+
+class AssignmentUpdate(BaseModel):
+    """Request model for assigning a violation"""
+    assigned_to_user_id: Optional[str] = None
+    assigned_to_user_name: Optional[str] = None

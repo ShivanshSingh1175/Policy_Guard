@@ -1,157 +1,335 @@
-import { Grid, Typography, Card, CardContent, Box } from '@mui/material';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-
-// Mock data
-const violationsTrendData = [
-  { date: '2/14', LOW: 5, MEDIUM: 8, HIGH: 4, CRITICAL: 2 },
-  { date: '2/15', LOW: 7, MEDIUM: 10, HIGH: 6, CRITICAL: 3 },
-  { date: '2/16', LOW: 4, MEDIUM: 7, HIGH: 5, CRITICAL: 2 },
-  { date: '2/17', LOW: 8, MEDIUM: 12, HIGH: 7, CRITICAL: 4 },
-  { date: '2/18', LOW: 6, MEDIUM: 9, HIGH: 5, CRITICAL: 3 },
-  { date: '2/19', LOW: 9, MEDIUM: 13, HIGH: 8, CRITICAL: 5 },
-  { date: '2/20', LOW: 7, MEDIUM: 11, HIGH: 6, CRITICAL: 4 },
-];
-
-const topRulesData = [
-  { rule: 'Large Cash Transactions', violations: 45 },
-  { rule: 'Structuring Detection', violations: 38 },
-  { rule: 'Dormant Account Activity', violations: 28 },
-  { rule: 'Sanctioned Entity', violations: 16 },
-];
-
-const topAccountsData = [
-  { account: 'ACC001', violations: 12, last_violation: '2024-02-20' },
-  { account: 'ACC002', violations: 9, last_violation: '2024-02-19' },
-  { account: 'ACC003', violations: 8, last_violation: '2024-02-20' },
-  { account: 'ACC004', violations: 7, last_violation: '2024-02-18' },
-  { account: 'ACC005', violations: 6, last_violation: '2024-02-20' },
-];
+import {
+  Grid,
+  Typography,
+  Card,
+  CardContent,
+  Box,
+  CircularProgress,
+  Alert,
+  Tooltip as MuiTooltip,
+  Skeleton,
+  useTheme,
+  alpha,
+  Button,
+} from '@mui/material';
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  Cell,
+} from 'recharts';
+import {
+  useTrends,
+  useTopRisks,
+  useControlHealth,
+  useFrameworkCoverage,
+} from '../../api/hooks/useAnalytics';
+import { SeverityChip } from '../../components/common/SeverityChip';
+import { PageHeader } from '../../components/common/PageHeader';
 
 export default function AnalyticsPage() {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
+
+  const { data: trends, isLoading: trendsLoading, error: trendsError } = useTrends(7);
+  const { data: risks, isLoading: risksLoading, error: risksError } = useTopRisks();
+  const { data: health, isLoading: healthLoading } = useControlHealth();
+  const { data: coverage } = useFrameworkCoverage();
+
+  const isLoading = trendsLoading || risksLoading || healthLoading;
+  const error = trendsError || risksError;
+
+  // Format trends for Recharts
+  const trendsData =
+    trends?.map((t: any) => ({
+      ...t,
+      date: new Date(t.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+    })) || [];
+
+  const topRulesData =
+    risks?.top_rules.map((r) => ({
+      rule: r.rule_name,
+      violations: r.violation_count,
+    })) || [];
+
+  const topAccountsData = risks?.top_accounts || [];
+
+  const getHealthColor = (rate: number) => {
+    if (rate === 0) return theme.palette.success.main;
+    if (rate < 0.1) return theme.palette.success.light;
+    if (rate < 0.3) return theme.palette.warning.main;
+    if (rate < 0.6) return theme.palette.warning.dark;
+    return theme.palette.error.main;
+  };
+
+  if (error) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="error" action={
+          <Button color="inherit" size="small" onClick={() => window.location.reload()}>
+            Retry
+          </Button>
+        }>
+          Failed to load analytics data. Please check your connection and try again.
+        </Alert>
+      </Box>
+    );
+  }
+
   return (
-    <Box sx={{ animation: 'fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1)' }}>
-      <Typography
-        variant="h3"
-        gutterBottom
-        sx={{
-          fontWeight: 800,
-          background: 'linear-gradient(135deg, #2872A1 0%, #3A8BC2 100%)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          backgroundClip: 'text',
-          mb: 4,
-        }}
-      >
-        Analytics
-      </Typography>
+    <Box>
+      <PageHeader
+        title="Compliance Analytics"
+        subtitle="Detailed metrics on control effectiveness and risk exposure"
+        breadcrumbs={[
+          { label: 'Dashboard', href: '/app/dashboard' },
+          { label: 'Analytics' },
+        ]}
+      />
 
       <Grid container spacing={3}>
+        {/* Coverage Summary */}
         <Grid item xs={12}>
-          <Card
-            sx={{
-              background: 'linear-gradient(135deg, rgba(40, 114, 161, 0.05) 0%, rgba(19, 47, 76, 1) 100%)',
-            }}
-          >
-            <CardContent>
-              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
-                Violations Per Day by Severity
-              </Typography>
-              <ResponsiveContainer width="100%" height={350}>
-                <LineChart data={violationsTrendData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                  <XAxis dataKey="date" stroke="rgba(255,255,255,0.7)" />
-                  <YAxis stroke="rgba(255,255,255,0.7)" />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#132F4C',
-                      border: '1px solid rgba(40, 114, 161, 0.3)',
-                      borderRadius: '8px',
-                    }}
-                  />
-                  <Legend />
-                  <Line type="monotone" dataKey="LOW" stroke="#4CAF50" strokeWidth={3} dot={{ r: 4 }} animationDuration={1500} />
-                  <Line type="monotone" dataKey="MEDIUM" stroke="#2196F3" strokeWidth={3} dot={{ r: 4 }} animationDuration={1500} />
-                  <Line type="monotone" dataKey="HIGH" stroke="#FF9800" strokeWidth={3} dot={{ r: 4 }} animationDuration={1500} />
-                  <Line type="monotone" dataKey="CRITICAL" stroke="#F44336" strokeWidth={3} dot={{ r: 4 }} animationDuration={1500} />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+          <Grid container spacing={2}>
+            {isLoading ? (
+              [1, 2, 3, 4].map((i) => (
+                <Grid item xs={12} sm={6} md={3} key={i}>
+                  <Skeleton variant="rounded" height={100} />
+                </Grid>
+              ))
+            ) : (
+              coverage?.frameworks.map((f: any) => (
+                <Grid item xs={12} sm={6} md={3} key={f.framework}>
+                  <Card sx={{
+                    bgcolor: alpha(theme.palette.primary.main, 0.05),
+                    border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`
+                  }}>
+                    <CardContent sx={{ py: 2, '&:last-child': { pb: 2 } }}>
+                      <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 700 }}>
+                        {f.framework} Coverage
+                      </Typography>
+                      <Typography variant="h4" sx={{ fontWeight: 800 }}>
+                        {f.enabled_count}/{f.rule_count}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Active Monitoring Rules
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))
+            )}
+          </Grid>
         </Grid>
 
-        <Grid item xs={12} md={6}>
-          <Card
-            sx={{
-              background: 'linear-gradient(135deg, rgba(40, 114, 161, 0.05) 0%, rgba(19, 47, 76, 1) 100%)',
-            }}
-          >
+        {/* Violations Timeline */}
+        <Grid item xs={12}>
+          <Card>
             <CardContent>
-              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
-                Top Rules by Violation Count
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 700, mb: 3 }}>
+                Violation Trends (Last 7 Days)
               </Typography>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={topRulesData} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                  <XAxis type="number" stroke="rgba(255,255,255,0.7)" />
-                  <YAxis dataKey="rule" type="category" width={150} stroke="rgba(255,255,255,0.7)" />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#132F4C',
-                      border: '1px solid rgba(40, 114, 161, 0.3)',
-                      borderRadius: '8px',
-                    }}
-                  />
-                  <Bar dataKey="violations" fill="#2872A1" radius={[0, 8, 8, 0]} animationDuration={1500} />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} md={6}>
-          <Card
-            sx={{
-              background: 'linear-gradient(135deg, rgba(40, 114, 161, 0.05) 0%, rgba(19, 47, 76, 1) 100%)',
-            }}
-          >
-            <CardContent>
-              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
-                Top Risky Accounts
-              </Typography>
-              <Box sx={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ borderBottom: '2px solid rgba(40, 114, 161, 0.3)' }}>
-                      <th style={{ padding: '12px', textAlign: 'left', fontWeight: 600 }}>Account ID</th>
-                      <th style={{ padding: '12px', textAlign: 'left', fontWeight: 600 }}>Violations</th>
-                      <th style={{ padding: '12px', textAlign: 'left', fontWeight: 600 }}>Last Violation</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {topAccountsData.map((account) => (
-                      <tr
-                        key={account.account}
-                        style={{
-                          borderBottom: '1px solid rgba(255,255,255,0.05)',
-                          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              <Box sx={{ height: 350, mt: 2 }}>
+                {trendsLoading ? (
+                  <Skeleton variant="rounded" height="100%" />
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={trendsData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} vertical={false} />
+                      <XAxis
+                        dataKey="date"
+                        stroke={theme.palette.text.secondary}
+                        fontSize={12}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <YAxis
+                        stroke={theme.palette.text.secondary}
+                        fontSize={12}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: theme.palette.background.paper,
+                          border: `1px solid ${theme.palette.divider}`,
+                          borderRadius: '12px',
+                          boxShadow: theme.shadows[4]
                         }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = 'rgba(40, 114, 161, 0.1)';
-                          e.currentTarget.style.transform = 'translateX(4px)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = 'transparent';
-                          e.currentTarget.style.transform = 'translateX(0)';
-                        }}
-                      >
-                        <td style={{ padding: '12px', fontFamily: 'monospace', color: '#3A8BC2' }}>{account.account}</td>
-                        <td style={{ padding: '12px', fontWeight: 600 }}>{account.violations}</td>
-                        <td style={{ padding: '12px', color: 'rgba(255,255,255,0.7)' }}>{account.last_violation}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                      />
+                      <Legend verticalAlign="top" height={36} iconType="circle" />
+                      <Line type="monotone" dataKey="LOW" stroke={theme.palette.success.main} strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                      <Line type="monotone" dataKey="MEDIUM" stroke={theme.palette.info.main} strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                      <Line type="monotone" dataKey="HIGH" stroke={theme.palette.warning.main} strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                      <Line type="monotone" dataKey="CRITICAL" stroke={theme.palette.error.main} strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                )}
               </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Control Health Heatmap */}
+        <Grid item xs={12}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 700, mb: 3 }}>
+                Control Health Matrix
+              </Typography>
+              {healthLoading ? (
+                <Skeleton variant="rounded" height={200} />
+              ) : (
+                <Box sx={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ borderBottom: `1px solid ${theme.palette.divider}` }}>
+                        <th style={{ padding: '16px', textAlign: 'left', color: theme.palette.text.secondary, fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>Control ID</th>
+                        <th style={{ padding: '16px', textAlign: 'left', color: theme.palette.text.secondary, fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>Rule Name</th>
+                        <th style={{ padding: '16px', textAlign: 'center', color: theme.palette.text.secondary, fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>Violations</th>
+                        <th style={{ padding: '16px', textAlign: 'center', color: theme.palette.text.secondary, fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>Avg / Scan</th>
+                        <th style={{ padding: '16px', textAlign: 'right', color: theme.palette.text.secondary, fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {health?.map((h) => (
+                        <tr
+                          key={h.rule_id}
+                          style={{
+                            borderBottom: `1px solid ${theme.palette.divider}`,
+                          }}
+                        >
+                          <td style={{ padding: '16px', color: theme.palette.primary.main, fontWeight: 700, fontFamily: 'monospace' }}>{h.control_id || 'N/A'}</td>
+                          <td style={{ padding: '16px' }}>
+                            <Typography variant="body2" sx={{ fontWeight: 600 }}>{h.rule_name}</Typography>
+                            <Typography variant="caption" color="text.secondary">{h.framework}</Typography>
+                          </td>
+                          <td style={{ padding: '16px', textAlign: 'center' }}>
+                            <Typography variant="body2" sx={{ fontWeight: 600 }}>{h.total_violations}</Typography>
+                          </td>
+                          <td style={{ padding: '16px', textAlign: 'center' }}>
+                            <Typography variant="body2">{h.average_violations_per_scan}</Typography>
+                          </td>
+                          <td style={{ padding: '16px', textAlign: 'right' }}>
+                            <Box
+                              sx={{
+                                display: 'inline-block',
+                                px: 1.5,
+                                py: 0.5,
+                                borderRadius: 1.5,
+                                fontSize: '0.7rem',
+                                fontWeight: 800,
+                                bgcolor: alpha(getHealthColor(h.average_violations_per_scan), 0.1),
+                                color: getHealthColor(h.average_violations_per_scan),
+                                border: `1px solid ${alpha(getHealthColor(h.average_violations_per_scan), 0.2)}`,
+                                textTransform: 'uppercase'
+                              }}
+                            >
+                              {h.average_violations_per_scan > 0.5 ? 'Critical' : h.average_violations_per_scan > 0.2 ? 'Warning' : 'Healthy'}
+                            </Box>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </Box>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Top Risks */}
+        <Grid item xs={12} md={6}>
+          <Card sx={{ height: '100%' }}>
+            <CardContent>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 700, mb: 3 }}>
+                Top 5 Active Risks (Rules)
+              </Typography>
+              <Box sx={{ height: 300 }}>
+                {risksLoading ? (
+                  <Skeleton variant="rounded" height="100%" />
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={topRulesData} layout="vertical">
+                      <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} horizontal={false} />
+                      <XAxis type="number" hide />
+                      <YAxis dataKey="rule" type="category" width={140} stroke={theme.palette.text.secondary} fontSize={10} />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: theme.palette.background.paper,
+                          border: `1px solid ${theme.palette.divider}`,
+                          borderRadius: '8px',
+                        }}
+                      />
+                      <Bar dataKey="violations" radius={[0, 4, 4, 0]}>
+                        {topRulesData.map((_, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={index === 0 ? theme.palette.error.main : index === 1 ? theme.palette.warning.main : theme.palette.primary.main}
+                          />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} md={6}>
+          <Card sx={{ height: '100%' }}>
+            <CardContent>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 700, mb: 3 }}>
+                Highest Risk Accounts
+              </Typography>
+              {risksLoading ? (
+                <Skeleton variant="rounded" height={300} />
+              ) : (
+                <Box sx={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ borderBottom: `1px solid ${theme.palette.divider}` }}>
+                        <th style={{ padding: '16px', textAlign: 'left', color: theme.palette.text.secondary, fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>Account ID</th>
+                        <th style={{ padding: '16px', textAlign: 'center', color: theme.palette.text.secondary, fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>Violations</th>
+                        <th style={{ padding: '16px', textAlign: 'right', color: theme.palette.text.secondary, fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>Risk Level</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {topAccountsData.length === 0 ? (
+                        <tr>
+                          <td colSpan={3} style={{ padding: '32px', textAlign: 'center' }}>
+                            <Typography variant="body2" color="text.secondary">No risk data available yet.</Typography>
+                          </td>
+                        </tr>
+                      ) : (
+                        topAccountsData.map((account) => (
+                          <tr key={account.account_id} style={{ borderBottom: `1px solid ${theme.palette.divider}` }}>
+                            <td style={{ padding: '16px', fontFamily: 'monospace', color: theme.palette.primary.main, fontWeight: 700 }}>{account.account_id}</td>
+                            <td style={{ padding: '16px', textAlign: 'center', fontWeight: 600 }}>{account.violation_count}</td>
+                            <td style={{ padding: '16px', textAlign: 'right' }}>
+                              <SeverityChip
+                                severity={
+                                  (account.risk_score && account.risk_score > 50) ? 'CRITICAL' :
+                                    (account.risk_score && account.risk_score > 30) ? 'HIGH' : 'MEDIUM'
+                                }
+                                label={`${account.risk_score || 0}%`}
+                              />
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </Box>
+              )}
             </CardContent>
           </Card>
         </Grid>

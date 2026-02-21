@@ -15,6 +15,7 @@ import {
   ListItemText,
   Chip,
   Button,
+  Tooltip,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -22,9 +23,15 @@ import {
   Description as DescriptionIcon,
   Scanner as ScannerIcon,
   Warning as WarningIcon,
+  AccountBalance as AccountIcon,
   Analytics as AnalyticsIcon,
+  Assignment as CasesIcon,
+  Settings as SettingsIcon,
   Logout as LogoutIcon,
+  LightMode as LightModeIcon,
+  DarkMode as DarkModeIcon,
 } from '@mui/icons-material';
+import { useThemeMode } from '../contexts/ThemeContext';
 
 const drawerWidth = 240;
 
@@ -33,13 +40,17 @@ const menuItems = [
   { text: 'Policies & Rules', icon: <DescriptionIcon />, path: '/app/policies' },
   { text: 'Scans', icon: <ScannerIcon />, path: '/app/scans' },
   { text: 'Violations', icon: <WarningIcon />, path: '/app/violations' },
+  { text: 'Accounts', icon: <AccountIcon />, path: '/app/accounts' },
   { text: 'Analytics', icon: <AnalyticsIcon />, path: '/app/analytics' },
+  { text: 'Cases', icon: <CasesIcon />, path: '/app/cases' },
+  { text: 'Settings', icon: <SettingsIcon />, path: '/app/settings' },
 ];
 
 export default function MainLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { mode, toggleTheme } = useThemeMode();
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -51,7 +62,17 @@ export default function MainLayout() {
     navigate('/login');
   };
 
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const getUser = () => {
+    try {
+      const userStr = localStorage.getItem('user');
+      return userStr ? JSON.parse(userStr) : {};
+    } catch (e) {
+      console.error('Failed to parse user from localStorage', e);
+      return {};
+    }
+  };
+
+  const user = getUser();
 
   const drawer = (
     <div>
@@ -152,10 +173,23 @@ export default function MainLayout() {
             sx={{
               mr: 2,
               backgroundColor: 'rgba(40, 114, 161, 0.2)',
-              color: 'white',
               fontWeight: 500,
             }}
           />
+          <Tooltip title={`Switch to ${mode === 'dark' ? 'light' : 'dark'} mode`}>
+            <IconButton
+              onClick={toggleTheme}
+              sx={{
+                mr: 1,
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                '&:hover': {
+                  transform: 'rotate(180deg)',
+                },
+              }}
+            >
+              {mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
+            </IconButton>
+          </Tooltip>
           <Button
             color="inherit"
             startIcon={<LogoutIcon />}

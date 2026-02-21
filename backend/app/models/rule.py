@@ -25,29 +25,34 @@ class RuleIn(BaseModel):
     severity: RuleSeverity = RuleSeverity.MEDIUM
     enabled: bool = True
     tags: List[str] = Field(default_factory=list)
+    framework: Optional[str] = Field(default="AML", description="Compliance framework (e.g., AML, KYC, GDPR)")
+    control_id: Optional[str] = Field(default=None, description="Control ID within framework")
     # company_id will be injected from JWT token
 
 
 class RuleOut(BaseModel):
     """Response model for rule"""
-    id: str = Field(alias="_id")
+    id: str = Field(validation_alias="_id")
     company_id: str
-    policy_id: str
+    policy_id: Optional[str] = None
     name: str
     description: str
     collection: str
-    query: Dict[str, Any]
+    query: Optional[Dict[str, Any]] = None
+    condition: Optional[Dict[str, Any]] = None
+    pipeline: Optional[List[Dict[str, Any]]] = None
     severity: RuleSeverity
     enabled: bool
-    tags: List[str]
+    tags: List[str] = Field(default_factory=list)
+    framework: Optional[str] = Field(default="AML")
+    control_id: Optional[str] = None
     created_at: datetime
-    updated_at: datetime
+    updated_at: Optional[datetime] = None
     
-    class Config:
-        populate_by_name = True
-        json_encoders = {
-            datetime: lambda v: v.isoformat()
-        }
+    model_config = {
+        "populate_by_name": True,
+        "from_attributes": True
+    }
 
 
 class RuleUpdate(BaseModel):
@@ -58,3 +63,5 @@ class RuleUpdate(BaseModel):
     severity: Optional[RuleSeverity] = None
     enabled: Optional[bool] = None
     tags: Optional[List[str]] = None
+    framework: Optional[str] = None
+    control_id: Optional[str] = None

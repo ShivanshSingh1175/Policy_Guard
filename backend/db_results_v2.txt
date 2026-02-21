@@ -1,0 +1,10 @@
+﻿
+Demo Company ID: 699a0849011d02a75d386ffd
+Rules for demo company: 6
+Rule: Large Cash Transaction Detection | Collection: transactions | Query: {'$and': [{'amount': {'$gt': 10000}}, {'documentation_status': {'$ne': 'complete'}}]}
+Rule: Structuring Detection | Collection: transactions | Query: {'$and': [{'amount': {'$gt': 9000, '$lt': 10000}}, {'transaction_type': 'cash'}]}
+Rule: High-Risk Account Activity | Collection: accounts | Query: {'$and': [{'risk_profile': {'$in': ['high', 'critical']}}, {'last_activity_days': {'$lt': 7}}]}
+Rule: Large Cash Transaction Detection | Collection: transactions | Query: {'$and': [{'amount': {'$gt': 10000}}, {'documentation_status': {'$ne': 'complete'}}]}
+Rule: Structuring Detection | Collection: transactions | Query: {'$and': [{'amount': {'$gt': 9000, '$lt': 10000}}, {'transaction_type': 'cash'}]}
+Rule: High-Risk Account Activity | Collection: accounts | Query: {'$and': [{'risk_profile': {'$in': ['high', 'critical']}}, {'last_activity_days': {'$lt': 7}}]}
+Transactions for demo company: 0

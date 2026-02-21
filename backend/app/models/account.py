@@ -27,6 +27,21 @@ class AccountRiskScore(BaseModel):
     calculated_at: datetime
 
 
+class AccountSummary(BaseModel):
+    id: str = Field(validation_alias="_id")
+    account_id: str
+    company_id: str
+    account_type: Optional[str] = None
+    balance: Optional[float] = None
+    status: Optional[str] = None
+    risk_score: Optional[int] = 0
+    
+    model_config = {
+        "populate_by_name": True,
+        "from_attributes": True
+    }
+
+
 class AccountDetail(BaseModel):
     account_id: str
     company_id: str
@@ -37,6 +52,10 @@ class AccountDetail(BaseModel):
     risk_score: Optional[AccountRiskScore] = None
     recent_violations: List[dict] = []
     transaction_count: int = 0
+    
+    model_config = {
+        "from_attributes": True
+    }
 
 
 class RemediationSuggestion(BaseModel):

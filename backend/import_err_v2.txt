@@ -1,0 +1,6 @@
+﻿============================================================
+PolicyGuard - IBM AML Dataset Import
+Scoping data to company: 699a0849011d02a75d386ffd
+============================================================
+
+1. Connecting to MongoDB at mongodb://localhost:27017...

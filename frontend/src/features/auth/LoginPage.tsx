@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -14,8 +14,7 @@ import {
 } from '@mui/material';
 import { LockOutlined, SecurityOutlined, Google as GoogleIcon } from '@mui/icons-material';
 import axios from 'axios';
-import { auth, signInWithGoogle } from '../../config/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+import { signInWithGoogle } from '../../config/firebase';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -25,33 +24,6 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-
-  // Check if user is already logged in with Firebase
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        // User is signed in with Firebase, authenticate with backend
-        try {
-          const idToken = await firebaseUser.getIdToken();
-          const response = await axios.post(`${API_URL}/auth/firebase-login`, {
-            firebase_token: idToken,
-            email: firebaseUser.email,
-            name: firebaseUser.displayName || firebaseUser.email?.split('@')[0],
-          });
-
-          const { access_token, user } = response.data;
-          localStorage.setItem('token', access_token);
-          localStorage.setItem('user', JSON.stringify(user));
-          navigate('/app/dashboard');
-        } catch (err: any) {
-          console.error('Backend authentication failed:', err);
-          setError('Failed to authenticate with backend. Please try again.');
-        }
-      }
-    });
-
-    return () => unsubscribe();
-  }, [navigate]);
 
   const handleGoogleLogin = async () => {
     setError('');

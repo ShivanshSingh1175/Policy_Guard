@@ -1,4 +1,5 @@
 import { Card, CardContent, Typography, Box, CircularProgress } from '@mui/material';
+import { TrendingUp, TrendingDown, TrendingFlat } from '@mui/icons-material';
 import type { ReactNode } from 'react';
 
 interface MetricCardProps {
@@ -7,9 +8,42 @@ interface MetricCardProps {
   icon: ReactNode;
   color?: string;
   loading?: boolean;
+  trend?: {
+    value: number;
+    direction: 'up' | 'down' | 'flat';
+  };
+  subtitle?: string;
 }
 
-export default function MetricCard({ title, value, icon, color = '#2872A1', loading }: MetricCardProps) {
+export default function MetricCard({ 
+  title, 
+  value, 
+  icon, 
+  color = '#2872A1', 
+  loading,
+  trend,
+  subtitle 
+}: MetricCardProps) {
+  const getTrendIcon = () => {
+    if (!trend) return null;
+    
+    const iconProps = {
+      fontSize: 'small' as const,
+      sx: { 
+        color: trend.direction === 'up' ? '#4CAF50' : trend.direction === 'down' ? '#F44336' : '#9E9E9E'
+      }
+    };
+    
+    switch (trend.direction) {
+      case 'up':
+        return <TrendingUp {...iconProps} />;
+      case 'down':
+        return <TrendingDown {...iconProps} />;
+      case 'flat':
+        return <TrendingFlat {...iconProps} />;
+    }
+  };
+
   return (
     <Card
       sx={{
@@ -72,18 +106,43 @@ export default function MetricCard({ title, value, icon, color = '#2872A1', load
             <CircularProgress size={32} sx={{ color: color }} />
           </Box>
         ) : (
-          <Typography
-            variant="h3"
-            sx={{
-              fontWeight: 700,
-              background: `linear-gradient(135deg, ${color} 0%, ${color}CC 100%)`,
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-            }}
-          >
-            {value}
-          </Typography>
+          <>
+            <Typography
+              variant="h3"
+              sx={{
+                fontWeight: 700,
+                background: `linear-gradient(135deg, ${color} 0%, ${color}CC 100%)`,
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                mb: trend || subtitle ? 1 : 0,
+              }}
+            >
+              {value}
+            </Typography>
+            {trend && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                {getTrendIcon()}
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: trend.direction === 'up' ? '#4CAF50' : trend.direction === 'down' ? '#F44336' : '#9E9E9E',
+                    fontWeight: 600,
+                  }}
+                >
+                  {trend.value > 0 ? '+' : ''}{trend.value}%
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  vs last period
+                </Typography>
+              </Box>
+            )}
+            {subtitle && (
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                {subtitle}
+              </Typography>
+            )}
+          </>
         )}
       </CardContent>
     </Card>

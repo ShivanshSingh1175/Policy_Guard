@@ -28,37 +28,44 @@ class PolicyIn(BaseModel):
     # company_id will be injected from JWT token
 
 
+class PolicyUpdate(BaseModel):
+    """Request model for updating a policy"""
+    name: Optional[str] = Field(None, min_length=1, max_length=200)
+    description: Optional[str] = None
+    version: Optional[str] = None
+
+
 class PolicyOut(BaseModel):
     """Response model for policy"""
-    id: str = Field(alias="_id")
+    id: str = Field(validation_alias="_id")
     company_id: str
     name: str
     description: Optional[str] = None
     version: str
+    file_name: Optional[str] = None
     extracted_text: str
     text_length: int
     created_at: datetime
     updated_at: datetime
+    created_by: Optional[str] = None
     
-    class Config:
-        populate_by_name = True
-        json_encoders = {
-            datetime: lambda v: v.isoformat(),
-            ObjectId: lambda v: str(v)
-        }
+    model_config = {
+        "populate_by_name": True,
+        "from_attributes": True
+    }
 
 
 class PolicySummary(BaseModel):
     """Lightweight policy summary"""
-    id: str = Field(alias="_id")
+    id: str = Field(validation_alias="_id")
     company_id: str
     name: str
+    description: Optional[str] = None
     version: str
     text_length: int
     created_at: datetime
     
-    class Config:
-        populate_by_name = True
-        json_encoders = {
-            datetime: lambda v: v.isoformat()
-        }
+    model_config = {
+        "populate_by_name": True,
+        "from_attributes": True
+    }
