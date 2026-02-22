@@ -443,6 +443,33 @@ async def run_demo_scan(db, company_id, rule_ids):
             violations_count = 0
             now = datetime.utcnow()
             
+            # Generate remediation suggestions based on rule type
+            remediation_suggestions = []
+            if "Cash" in rule["name"]:
+                remediation_suggestions = [
+                    "Request additional KYC documentation from customer",
+                    "File Currency Transaction Report (CTR) with FinCEN within 15 days",
+                    "Review customer's transaction history for patterns"
+                ]
+            elif "Structuring" in rule["name"]:
+                remediation_suggestions = [
+                    "Escalate to senior compliance officer for SAR filing review",
+                    "Conduct enhanced due diligence on customer account",
+                    "Schedule customer interview to verify source of funds"
+                ]
+            elif "Wire" in rule["name"]:
+                remediation_suggestions = [
+                    "Verify beneficial ownership information",
+                    "Review international wire transfer documentation",
+                    "Check OFAC sanctions list for counterparty"
+                ]
+            else:
+                remediation_suggestions = [
+                    "Review account activity for unusual patterns",
+                    "Update customer risk profile",
+                    "Document findings in compliance management system"
+                ]
+            
             for doc in matching_docs:
                 violation_doc = {
                     "company_id": company_id,
@@ -454,6 +481,8 @@ async def run_demo_scan(db, company_id, rule_ids):
                     "document_data": {k: str(v) if isinstance(v, ObjectId) else v for k, v in doc.items()},
                     "severity": rule["severity"],
                     "status": "OPEN",
+                    "explanation": rule.get("explanation", f"Violation detected by rule: {rule['name']}"),
+                    "remediation_suggestions": remediation_suggestions,
                     "reviewer_note": None,
                     "reviewed_by": None,
                     "reviewed_at": None,
