@@ -38,8 +38,10 @@ import {
     History as HistoryIcon,
     Info as InfoIcon,
     TrendingUp as TrendingUpIcon,
+    CloudUpload as ImportIcon,
 } from '@mui/icons-material';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '../../components/common/PageHeader';
 import { useAlertConfigs, useScanSchedules } from '../../api/hooks/useSettings';
 
@@ -60,6 +62,7 @@ function CustomTabPanel(props: TabPanelProps) {
 
 export default function SettingsPage() {
     const theme = useTheme();
+    const navigate = useNavigate();
     const [tabValue, setTabValue] = useState(0);
     const { data: alerts } = useAlertConfigs();
     const { data: schedules } = useScanSchedules();
@@ -94,6 +97,7 @@ export default function SettingsPage() {
                     <Tab icon={<NotificationIcon sx={{ mr: 1, fontSize: 20 }} />} iconPosition="start" label="Alert Intelligence" />
                     <Tab icon={<ScheduleIcon sx={{ mr: 1, fontSize: 20 }} />} iconPosition="start" label="Scan Cycles" />
                     <Tab icon={<SecurityIcon sx={{ mr: 1, fontSize: 20 }} />} iconPosition="start" label="Platform Security" />
+                    <Tab icon={<ImportIcon sx={{ mr: 1, fontSize: 20 }} />} iconPosition="start" label="Data Import" />
                 </Tabs>
             </Box>
 
@@ -305,6 +309,40 @@ export default function SettingsPage() {
                         </Card>
                     </Grid>
                 </Grid>
+            </CustomTabPanel>
+
+            <CustomTabPanel value={tabValue} index={3}>
+                <Card>
+                    <CardContent>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
+                            <ImportIcon color="primary" sx={{ fontSize: 32 }} />
+                            <Box>
+                                <Typography variant="h6" sx={{ fontWeight: 700 }}>Company Data Import</Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                    Upload your transaction, account, and payroll data via CSV files
+                                </Typography>
+                            </Box>
+                        </Box>
+
+                        <Alert severity="info" icon={<InfoIcon />} sx={{ mb: 3 }}>
+                            Import your company's data to run compliance scans on real records. Supports transactions, accounts, and payroll data.
+                        </Alert>
+
+                        <Button
+                            variant="contained"
+                            size="large"
+                            fullWidth
+                            startIcon={<ImportIcon />}
+                            onClick={() => navigate('/app/settings/data-import')}
+                            sx={{
+                                py: 2,
+                                boxShadow: `0 4px 14px 0 ${alpha(theme.palette.primary.main, 0.3)}`,
+                            }}
+                        >
+                            Go to Data Import
+                        </Button>
+                    </CardContent>
+                </Card>
             </CustomTabPanel>
         </Box>
     );

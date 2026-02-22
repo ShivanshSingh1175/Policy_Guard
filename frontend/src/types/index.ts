@@ -82,10 +82,22 @@ export interface Case {
   assigned_to_user_name?: string;
   linked_violation_ids: string[];
   comments: CaseComment[];
+  due_by?: string;
+  sla_status?: 'ON_TRACK' | 'AT_RISK' | 'BREACHED';
+  level?: 'L1' | 'L2' | 'QA';
+  activity_log?: ActivityLogEntry[];
   created_at: string;
   updated_at: string;
   created_by: string;
   created_by_name: string;
+}
+
+export interface ActivityLogEntry {
+  type: string;
+  user_id: string;
+  user_name: string;
+  message: string;
+  created_at: string;
 }
 
 export interface ControlHealth {

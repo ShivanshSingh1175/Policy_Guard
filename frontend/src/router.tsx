@@ -8,7 +8,10 @@ import AnalyticsPage from './features/analytics/AnalyticsPage';
 import LoginPage from './features/auth/LoginPage';
 import AccountsPage from './features/accounts/AccountsPage';
 import SettingsPage from './features/settings/SettingsPage';
+import DataImportPage from './features/settings/DataImportPage';
 import CasesPage from './features/cases/CasesPage';
+import MyWorkPage from './features/mywork/MyWorkPage';
+import CoveragePage from './features/coverage/CoveragePage';
 
 // Protected route wrapper
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -69,8 +72,20 @@ export const router = createBrowserRouter([
         element: <SettingsPage />,
       },
       {
+        path: 'settings/data-import',
+        element: <DataImportPage />,
+      },
+      {
         path: 'cases',
         element: <CasesPage />,
+      },
+      {
+        path: 'my-work',
+        element: <MyWorkPage />,
+      },
+      {
+        path: 'coverage',
+        element: <CoveragePage />,
       },
     ],
   },

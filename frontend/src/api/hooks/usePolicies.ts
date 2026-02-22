@@ -62,12 +62,14 @@ export const useDeletePolicy = () => {
 export const useExtractRules = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
-      const { data } = await apiClient.post(`/policies/${id}/extract-rules`);
+    mutationFn: async ({ id, autoScan = false }: { id: string; autoScan?: boolean }) => {
+      const { data } = await apiClient.post(`/policies/${id}/extract-rules?auto_scan=${autoScan}`);
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rules'] });
+      queryClient.invalidateQueries({ queryKey: ['violations'] });
+      queryClient.invalidateQueries({ queryKey: ['scans'] });
     },
   });
 };

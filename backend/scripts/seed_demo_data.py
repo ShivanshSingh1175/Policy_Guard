@@ -375,7 +375,7 @@ async def seed_rules(db, company_id, policy_ids):
     return rule_ids
 
 
-async def run_demo_scan(db, company_id, rule_ids):
+async def run_demo_scan(db, company_id, rule_ids, user_id):
     """Execute a demo scan to generate violations"""
     print("\n7. Running demo compliance scan...")
     
@@ -470,7 +470,12 @@ async def run_demo_scan(db, company_id, rule_ids):
                     "Document findings in compliance management system"
                 ]
             
-            for doc in matching_docs:
+            # Auto-assign some violations to demo user
+            for idx, doc in enumerate(matching_docs):
+                # Assign every 3rd violation to demo user
+                assigned_to_user_id = user_id if idx % 3 == 0 else None
+                assigned_to_user_name = DEMO_ADMIN_NAME if idx % 3 == 0 else None
+                
                 violation_doc = {
                     "company_id": company_id,
                     "scan_run_id": scan_run_id,
@@ -480,13 +485,16 @@ async def run_demo_scan(db, company_id, rule_ids):
                     "document_id": str(doc.get("_id", "unknown")),
                     "document_data": {k: str(v) if isinstance(v, ObjectId) else v for k, v in doc.items()},
                     "severity": rule["severity"],
-                    "status": "OPEN",
+                    "status": "OPEN",  # Changed from ERROR to OPEN
                     "explanation": rule.get("explanation", f"Violation detected by rule: {rule['name']}"),
                     "remediation_suggestions": remediation_suggestions,
+                    "assigned_to_user_id": assigned_to_user_id,
+                    "assigned_to_user_name": assigned_to_user_name,
                     "reviewer_note": None,
                     "reviewed_by": None,
                     "reviewed_at": None,
-                    "created_at": now
+                    "created_at": now,
+                    "updated_at": now
                 }
                 
                 await db.violations.insert_one(violation_doc)
@@ -533,6 +541,7 @@ async def run_demo_scan(db, company_id, rule_ids):
     print(f"✓ Scan completed: {scan_run_id}")
     print(f"  - Rules executed: {len(rules)}")
     print(f"  - Violations found: {total_violations}")
+    print(f"  - Auto-assigned to demo user: {total_violations // 3}")
     print(f"  - Execution time: {round(execution_time, 2)}s")
     
     return scan_run_id
@@ -559,15 +568,16 @@ async def seed_cases(db, company_id, user_id):
             "description": "Multiple large cash deposits detected on account ACC0023. Investigating source of funds and customer business activity.",
             "status": "OPEN",
             "severity": "HIGH",
-            "primary_account": "ACC0023",
-            "assigned_to": user_id,
+            "primary_account_id": "ACC0023",
+            "assigned_to_user_id": user_id,
+            "assigned_to_user_name": DEMO_ADMIN_NAME,
             "violation_ids": [str(violations[0]["_id"]), str(violations[1]["_id"])],
             "comments": [
                 {
                     "user_id": user_id,
                     "user_name": DEMO_ADMIN_NAME,
                     "comment": "Initiated investigation. Requesting additional KYC documentation from customer.",
-                    "timestamp": datetime.utcnow() - timedelta(hours=2)
+                    "created_at": datetime.utcnow() - timedelta(hours=2)
                 }
             ],
             "created_at": datetime.utcnow() - timedelta(days=2),
@@ -579,21 +589,22 @@ async def seed_cases(db, company_id, user_id):
             "description": "Account ACC0045 shows pattern of multiple cash transactions just below $10,000 threshold over 7-day period.",
             "status": "IN_REVIEW",
             "severity": "CRITICAL",
-            "primary_account": "ACC0045",
-            "assigned_to": user_id,
+            "primary_account_id": "ACC0045",
+            "assigned_to_user_id": user_id,
+            "assigned_to_user_name": DEMO_ADMIN_NAME,
             "violation_ids": [str(violations[2]["_id"]), str(violations[3]["_id"]), str(violations[4]["_id"])],
             "comments": [
                 {
                     "user_id": user_id,
                     "user_name": DEMO_ADMIN_NAME,
                     "comment": "Clear structuring pattern identified. Escalating to compliance officer.",
-                    "timestamp": datetime.utcnow() - timedelta(days=1)
+                    "created_at": datetime.utcnow() - timedelta(days=1)
                 },
                 {
                     "user_id": user_id,
                     "user_name": DEMO_ADMIN_NAME,
                     "comment": "Customer interview scheduled for next week. Preparing SAR documentation.",
-                    "timestamp": datetime.utcnow() - timedelta(hours=5)
+                    "created_at": datetime.utcnow() - timedelta(hours=5)
                 }
             ],
             "created_at": datetime.utcnow() - timedelta(days=3),
@@ -603,7 +614,7 @@ async def seed_cases(db, company_id, user_id):
     
     result = await db.cases.insert_many(cases)
     case_ids = [str(cid) for cid in result.inserted_ids]
-    print(f"✓ Seeded {len(case_ids)} investigation cases")
+    print(f"✓ Seeded {len(case_ids)} investigation cases (all assigned to demo user)")
     
     return case_ids
 
@@ -719,7 +730,7 @@ async def main():
         transactions = await seed_transactions(db, company_id, accounts, num_transactions=1000)
         policy_ids = await seed_policies(db, company_id, user_id)
         rule_ids = await seed_rules(db, company_id, policy_ids)
-        scan_run_id = await run_demo_scan(db, company_id, rule_ids)
+        scan_run_id = await run_demo_scan(db, company_id, rule_ids, user_id)
         case_ids = await seed_cases(db, company_id, user_id)
         await update_violation_statuses(db, company_id)
         await create_indexes(db)

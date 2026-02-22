@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Grid,
   Typography,
@@ -26,7 +27,9 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Description as PolicyIcon,
-  Rule as RuleIcon
+  Rule as RuleIcon,
+  Visibility as ViewIcon,
+  CheckCircle as SuccessIcon,
 } from '@mui/icons-material';
 import {
   usePolicies,
@@ -40,9 +43,11 @@ import { SeverityChip } from '../../components/common/SeverityChip';
 import { PageHeader } from '../../components/common/PageHeader';
 
 export default function PoliciesPage() {
+  const navigate = useNavigate();
   const [selectedPolicyId, setSelectedPolicyId] = useState<string | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingPolicy, setEditingPolicy] = useState<{ id: string, name: string, description: string } | null>(null);
+  const [scanResult, setScanResult] = useState<any>(null);
 
   const { data: policies, isLoading: policiesLoading } = usePolicies();
   const { data: rules, isLoading: rulesLoading, isFetching: rulesFetching } = useRules(selectedPolicyId || undefined);
@@ -65,7 +70,17 @@ export default function PoliciesPage() {
   };
 
   const handleExtractRules = (policyId: string) => {
-    extractRules.mutate(policyId);
+    setScanResult(null);
+    extractRules.mutate(
+      { id: policyId, autoScan: true },
+      {
+        onSuccess: (data) => {
+          if (data.scan_summary) {
+            setScanResult(data);
+          }
+        }
+      }
+    );
   };
 
   const handleEditPolicy = (policy: any) => {
@@ -256,6 +271,34 @@ export default function PoliciesPage() {
                   </Button>
                 )}
               </Box>
+
+              {scanResult && (
+                <Alert
+                  severity="success"
+                  icon={<SuccessIcon />}
+                  sx={{ m: 2 }}
+                  action={
+                    <Button
+                      size="small"
+                      startIcon={<ViewIcon />}
+                      onClick={() => navigate('/app/violations')}
+                    >
+                      View Violations
+                    </Button>
+                  }
+                >
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                    Rules extracted: {scanResult.rules_created} | Initial scan completed
+                  </Typography>
+                  <Typography variant="body2">
+                    {scanResult.scan_summary.total_violations} violations found
+                    {scanResult.scan_summary.high > 0 && ` (${scanResult.scan_summary.high} High`}
+                    {scanResult.scan_summary.medium > 0 && `, ${scanResult.scan_summary.medium} Medium`}
+                    {scanResult.scan_summary.low > 0 && `, ${scanResult.scan_summary.low} Low`}
+                    {scanResult.scan_summary.high > 0 && ')'}
+                  </Typography>
+                </Alert>
+              )}
 
               {!selectedPolicyId ? (
                 <Box sx={{ py: 12, textAlign: 'center' }}>

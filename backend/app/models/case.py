@@ -22,6 +22,34 @@ class CaseSeverity(str, Enum):
     CRITICAL = "CRITICAL"
 
 
+class SLAStatus(str, Enum):
+    """SLA status"""
+    ON_TRACK = "ON_TRACK"
+    AT_RISK = "AT_RISK"
+    BREACHED = "BREACHED"
+
+
+class CaseLevel(str, Enum):
+    """Case investigation level"""
+    L1 = "L1"
+    L2 = "L2"
+    QA = "QA"
+
+
+class ActivityLogEntry(BaseModel):
+    """Activity log entry"""
+    type: str  # "status_change", "assignment", "comment", "created"
+    user_id: str
+    user_name: str
+    message: str
+    created_at: datetime
+    
+    class Config:
+        json_encoders = {
+            datetime: lambda v: v.isoformat()
+        }
+
+
 class CaseComment(BaseModel):
     """Comment on a case"""
     user_id: str
@@ -42,6 +70,8 @@ class CaseIn(BaseModel):
     severity: CaseSeverity = CaseSeverity.MEDIUM
     violation_ids: List[str] = Field(default_factory=list)
     assigned_to_user_id: Optional[str] = None
+    due_by: Optional[datetime] = None
+    level: CaseLevel = CaseLevel.L1
 
 
 class CaseOut(BaseModel):
@@ -56,6 +86,10 @@ class CaseOut(BaseModel):
     assigned_to_user_name: Optional[str] = None
     linked_violation_ids: List[str] = Field(default_factory=list)
     comments: List[CaseComment] = Field(default_factory=list)
+    due_by: Optional[datetime] = None
+    sla_status: SLAStatus = SLAStatus.ON_TRACK
+    level: CaseLevel = CaseLevel.L1
+    activity_log: List[ActivityLogEntry] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
     created_by: str
@@ -74,6 +108,8 @@ class CaseUpdate(BaseModel):
     severity: Optional[CaseSeverity] = None
     status: Optional[CaseStatus] = None
     assigned_to_user_id: Optional[str] = None
+    due_by: Optional[datetime] = None
+    level: Optional[CaseLevel] = None
 
 
 class CommentIn(BaseModel):

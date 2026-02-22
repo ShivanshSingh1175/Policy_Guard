@@ -243,3 +243,56 @@ async def delete_violation(violation_id: str, current_user: TokenData = Depends(
         raise HTTPException(status_code=404, detail="Violation not found")
     
     return None
+
+
+
+@router.get("/{violation_id}/explain")
+async def explain_violation(
+    violation_id: str,
+    current_user: TokenData = Depends(get_current_user)
+):
+    """
+    Get human-readable explanation for a violation
+    """
+    from app.services.explainability_service import generate_violation_explanation
+    
+    db = get_database()
+    
+    if not ObjectId.is_valid(violation_id):
+        raise HTTPException(status_code=400, detail="Invalid violation ID")
+    
+    # Get violation
+    violation = await db.violations.find_one({
+        "_id": ObjectId(violation_id),
+        "company_id": current_user.company_id
+    })
+    
+    if not violation:
+        raise HTTPException(status_code=404, detail="Violation not found")
+    
+    # Get associated rule
+    rule = await db.rules.find_one({
+        "_id": ObjectId(violation["rule_id"]),
+        "company_id": current_user.company_id
+    })
+    
+    if not rule:
+        return {
+            "rule_summary": "Rule not found",
+            "dataset_mapping": None,
+            "reasons": ["Unable to generate explanation - rule not found"],
+            "threshold_info": None
+        }
+    
+    # Get dataset recommendation if mapped
+    recommendation = None
+    control_id = rule.get("control_id")
+    if control_id:
+        recommendation = await db.dataset_recommendations.find_one({
+            "control_id": control_id
+        })
+    
+    # Generate explanation
+    explanation = generate_violation_explanation(violation, rule, recommendation)
+    
+    return explanation

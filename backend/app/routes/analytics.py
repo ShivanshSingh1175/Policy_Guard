@@ -256,3 +256,71 @@ async def get_trends(
         trends[date][severity] = count
     
     return list(trends.values())
+
+
+
+@router.get("/detection-metrics")
+async def get_detection_metrics(current_user: TokenData = Depends(get_current_user)):
+    """
+    Get detection accuracy metrics based on ground truth labels from IBM AML dataset
+    """
+    db = get_database()
+    
+    metrics = await db.detection_metrics.find_one(
+        {"company_id": current_user.company_id},
+        sort=[("calculated_at", -1)]
+    )
+    
+    if not metrics:
+        return {
+            "message": "No detection metrics available. Run add_aml_labels.py to generate metrics.",
+            "metrics": None
+        }
+    
+    # Remove MongoDB _id
+    if "_id" in metrics:
+        del metrics["_id"]
+    
+    return metrics
+
+
+@router.get("/laundering-by-type")
+async def get_laundering_by_type(current_user: TokenData = Depends(get_current_user)):
+    """
+    Get laundering activity breakdown by type
+    """
+    db = get_database()
+    
+    pipeline = [
+        {
+            "$match": {
+                "company_id": current_user.company_id,
+                "is_laundering": True
+            }
+        },
+        {
+            "$group": {
+                "_id": "$laundering_type",
+                "count": {"$sum": 1},
+                "total_amount": {"$sum": "$amount"},
+                "avg_confidence": {"$avg": "$laundering_confidence"}
+            }
+        },
+        {
+            "$sort": {"count": -1}
+        }
+    ]
+    
+    results = await db.transactions.aggregate(pipeline).to_list(length=None)
+    
+    return {
+        "laundering_types": [
+            {
+                "type": r["_id"] or "unknown",
+                "count": r["count"],
+                "total_amount": round(r["total_amount"], 2),
+                "avg_confidence": round(r["avg_confidence"], 2)
+            }
+            for r in results
+        ]
+    }

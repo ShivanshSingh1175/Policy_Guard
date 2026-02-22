@@ -9,6 +9,10 @@ from bson import ObjectId
 
 from app.db import get_database
 from app.models.scan import ScanStatus, ScanSummary, RuleScanResult
+from app.services.advanced_rules import (
+    AdvancedRuleEngine,
+    create_violations_from_pattern
+)
 
 
 async def run_scan(
@@ -84,6 +88,15 @@ async def run_scan(
     # Execute each rule
     rule_results = []
     total_violations = 0
+    
+    # First, run advanced pattern detection rules
+    print("Running advanced pattern detection...")
+    advanced_violations = await run_advanced_pattern_detection(
+        db=db,
+        company_id=company_id,
+        scan_run_id=scan_run_id
+    )
+    total_violations += advanced_violations
     
     for rule in rules:
         rule_start = time.time()
@@ -228,3 +241,134 @@ def sanitize_document(doc: Dict[str, Any]) -> Dict[str, Any]:
         else:
             sanitized[key] = value
     return sanitized
+
+
+
+async def run_advanced_pattern_detection(
+    db,
+    company_id: str,
+    scan_run_id: str
+) -> int:
+    """
+    Run advanced pattern detection using aggregation pipelines
+    
+    Returns: Total number of violations created
+    """
+    total_violations = 0
+    engine = AdvancedRuleEngine()
+    
+    # 1. Structuring Detection
+    try:
+        structuring_results = await engine.detect_structuring_pattern(db, company_id, hours_window=24)
+        if structuring_results:
+            violations_created = await create_violations_from_pattern(
+                db=db,
+                company_id=company_id,
+                scan_run_id=scan_run_id,
+                rule_id="ADVANCED_STRUCTURING",
+                rule_name="Advanced Structuring Detection",
+                pattern_results=structuring_results,
+                severity="CRITICAL",
+                explanation_template="Account {account_id} made {transaction_count} transactions totaling ${total_amount:.2f} between $9,000-$9,999 within {time_span_hours:.1f} hours. This pattern indicates potential structuring to avoid CTR reporting."
+            )
+            total_violations += violations_created
+            print(f"  ✓ Structuring detection: {violations_created} violations")
+    except Exception as e:
+        print(f"  ! Structuring detection error: {e}")
+    
+    # 2. Rapid Transfers Detection
+    try:
+        rapid_transfer_results = await engine.detect_rapid_transfers(db, company_id, hours_window=24, min_transfers=5)
+        if rapid_transfer_results:
+            violations_created = await create_violations_from_pattern(
+                db=db,
+                company_id=company_id,
+                scan_run_id=scan_run_id,
+                rule_id="ADVANCED_RAPID_TRANSFERS",
+                rule_name="Rapid Transfer Pattern Detection",
+                pattern_results=rapid_transfer_results,
+                severity="HIGH",
+                explanation_template="Account {src_account} made {transfer_count} rapid transfers to {dst_account} totaling ${total_amount:.2f} within 24 hours. Average transfer: ${avg_amount:.2f}. This may indicate layering activity."
+            )
+            total_violations += violations_created
+            print(f"  ✓ Rapid transfers detection: {violations_created} violations")
+    except Exception as e:
+        print(f"  ! Rapid transfers detection error: {e}")
+    
+    # 3. High-Risk Account Detection
+    try:
+        high_risk_results = await engine.detect_high_risk_accounts(db, company_id, violation_threshold=5)
+        if high_risk_results:
+            violations_created = await create_violations_from_pattern(
+                db=db,
+                company_id=company_id,
+                scan_run_id=scan_run_id,
+                rule_id="ADVANCED_HIGH_RISK",
+                rule_name="High-Risk Account Activity",
+                pattern_results=high_risk_results,
+                severity="HIGH",
+                explanation_template="Account {account_id} has {violation_count} violations (Risk Score: {risk_score}) including {critical_count} critical and {high_count} high severity. Enhanced due diligence required."
+            )
+            total_violations += violations_created
+            print(f"  ✓ High-risk accounts: {violations_created} violations")
+    except Exception as e:
+        print(f"  ! High-risk account detection error: {e}")
+    
+    # 4. Unusual Frequency Detection
+    try:
+        unusual_freq_results = await engine.detect_unusual_frequency(db, company_id, days_window=7)
+        if unusual_freq_results:
+            violations_created = await create_violations_from_pattern(
+                db=db,
+                company_id=company_id,
+                scan_run_id=scan_run_id,
+                rule_id="ADVANCED_UNUSUAL_FREQUENCY",
+                rule_name="Unusual Transaction Frequency",
+                pattern_results=unusual_freq_results,
+                severity="MEDIUM",
+                explanation_template="Account {account_id} shows {frequency_multiplier:.1f}x increase in transaction frequency. Recent: {recent_transaction_count} transactions (${recent_total_amount:.2f}) vs historical average: {historical_avg_per_week:.1f} per week."
+            )
+            total_violations += violations_created
+            print(f"  ✓ Unusual frequency: {violations_created} violations")
+    except Exception as e:
+        print(f"  ! Unusual frequency detection error: {e}")
+    
+    # 5. Round Amount Pattern Detection
+    try:
+        round_amount_results = await engine.detect_round_amount_pattern(db, company_id, days_window=30)
+        if round_amount_results:
+            violations_created = await create_violations_from_pattern(
+                db=db,
+                company_id=company_id,
+                scan_run_id=scan_run_id,
+                rule_id="ADVANCED_ROUND_AMOUNTS",
+                rule_name="Suspicious Round Amount Pattern",
+                pattern_results=round_amount_results,
+                severity="MEDIUM",
+                explanation_template="Account {account_id} made {round_transaction_count} transactions with round amounts totaling ${total_round_amount:.2f}. Round amounts may indicate layering or placement activities."
+            )
+            total_violations += violations_created
+            print(f"  ✓ Round amount patterns: {violations_created} violations")
+    except Exception as e:
+        print(f"  ! Round amount detection error: {e}")
+    
+    # 6. Daily Structuring Detection
+    try:
+        daily_structuring_results = await engine.detect_daily_structuring(db, company_id, days_window=30)
+        if daily_structuring_results:
+            violations_created = await create_violations_from_pattern(
+                db=db,
+                company_id=company_id,
+                scan_run_id=scan_run_id,
+                rule_id="ADVANCED_DAILY_STRUCTURING",
+                rule_name="Daily Structuring Pattern",
+                pattern_results=daily_structuring_results,
+                severity="CRITICAL",
+                explanation_template="Account {account_id} made {transaction_count} transactions on {day} totaling ${daily_total:.2f} (below $10k threshold). This sophisticated structuring pattern avoids daily reporting requirements."
+            )
+            total_violations += violations_created
+            print(f"  ✓ Daily structuring patterns: {violations_created} violations")
+    except Exception as e:
+        print(f"  ! Daily structuring detection error: {e}")
+    
+    return total_violations

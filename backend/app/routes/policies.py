@@ -149,14 +149,16 @@ async def update_policy(
     return PolicyOut(**result)
 
 
-@router.post("/{policy_id}/extract-rules", response_model=List[RuleOut], status_code=201)
+@router.post("/{policy_id}/extract-rules", status_code=201)
 async def extract_rules_from_policy(
     policy_id: str,
+    auto_scan: bool = False,
     schema_hint: Optional[str] = None,
     current_user: TokenData = Depends(get_current_user)
 ):
     """
-    Use LLM to generate rules from policy text and store them
+    Use LLM to generate rules from policy text and store them.
+    Optionally run an immediate scan on existing data.
     """
     db = get_database()
     
@@ -188,6 +190,7 @@ async def extract_rules_from_policy(
     # Store rules in database
     now = datetime.utcnow()
     created_rules = []
+    rule_ids = []
     
     for rule_data in rules_data:
         rule_doc = {
@@ -202,15 +205,83 @@ async def extract_rules_from_policy(
             "tags": rule_data.tags,
             "framework": rule_data.framework if hasattr(rule_data, 'framework') else "AML",
             "control_id": rule_data.control_id if hasattr(rule_data, 'control_id') else None,
+            "explanation": rule_data.description,  # Use description as explanation
             "created_at": now,
             "updated_at": now
         }
         
         result = await db.rules.insert_one(rule_doc)
         rule_doc["_id"] = str(result.inserted_id)
+        rule_ids.append(str(result.inserted_id))
         created_rules.append(RuleOut(**rule_doc))
     
-    return created_rules
+    # If auto_scan is enabled, run scan immediately
+    scan_summary = None
+    if auto_scan and created_rules:
+        from app.services.scan_service import run_scan
+        
+        try:
+            scan_result = await run_scan(
+                company_id=current_user.company_id,
+                collections=None,  # Scan all collections
+                rule_ids=rule_ids  # Only use newly created rules
+            )
+            
+            # Get violation counts by severity
+            violations = await db.violations.find({
+                "company_id": current_user.company_id,
+                "scan_run_id": scan_result.scan_run_id
+            }).to_list(length=None)
+            
+            severity_counts = {"HIGH": 0, "MEDIUM": 0, "LOW": 0, "CRITICAL": 0}
+            rule_counts = {}
+            account_counts = {}
+            
+            for v in violations:
+                severity = v.get("severity", "LOW")
+                severity_counts[severity] = severity_counts.get(severity, 0) + 1
+                
+                # Count by rule
+                rule_id = v.get("rule_id")
+                rule_name = v.get("rule_name", "Unknown")
+                if rule_id:
+                    if rule_id not in rule_counts:
+                        rule_counts[rule_id] = {"rule_id": rule_id, "rule_name": rule_name, "count": 0}
+                    rule_counts[rule_id]["count"] += 1
+                
+                # Count by account
+                doc_data = v.get("document_data", {})
+                account_id = doc_data.get("account_id") or doc_data.get("src_account") or doc_data.get("dst_account")
+                if account_id:
+                    if account_id not in account_counts:
+                        account_counts[account_id] = {"account_id": account_id, "count": 0}
+                    account_counts[account_id]["count"] += 1
+            
+            # Get top 3 rules and accounts
+            top_rules = sorted(rule_counts.values(), key=lambda x: x["count"], reverse=True)[:3]
+            top_accounts = sorted(account_counts.values(), key=lambda x: x["count"], reverse=True)[:3]
+            
+            scan_summary = {
+                "scan_run_id": scan_result.scan_run_id,
+                "total_violations": scan_result.total_violations_found,
+                "high": severity_counts.get("HIGH", 0),
+                "medium": severity_counts.get("MEDIUM", 0),
+                "low": severity_counts.get("LOW", 0),
+                "critical": severity_counts.get("CRITICAL", 0),
+                "execution_time_seconds": scan_result.execution_time_seconds,
+                "top_rules": top_rules,
+                "top_accounts": top_accounts
+            }
+        except Exception as e:
+            print(f"Auto-scan error: {str(e)}")
+            # Don't fail the whole request if scan fails
+            scan_summary = {"error": str(e)}
+    
+    return {
+        "rules_created": len(created_rules),
+        "rules": [rule.model_dump() for rule in created_rules],
+        "scan_summary": scan_summary
+    }
 
 
 @router.delete("/{policy_id}", status_code=204)

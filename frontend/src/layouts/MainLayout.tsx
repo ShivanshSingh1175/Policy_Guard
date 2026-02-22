@@ -30,13 +30,19 @@ import {
   Logout as LogoutIcon,
   LightMode as LightModeIcon,
   DarkMode as DarkModeIcon,
+  Explore as GuideIcon,
+  AssignmentInd as AssignmentIndIcon,
+  Assessment as AssessmentIcon,
 } from '@mui/icons-material';
 import { useThemeMode } from '../contexts/ThemeContext';
+import { GuidedDemoDrawer } from '../components/common/GuidedDemoDrawer';
 
 const drawerWidth = 240;
 
 const menuItems = [
   { text: 'Dashboard', icon: <DashboardIcon />, path: '/app/dashboard' },
+  { text: 'My Work', icon: <AssignmentIndIcon />, path: '/app/my-work' },
+  { text: 'Coverage', icon: <AssessmentIcon />, path: '/app/coverage' },
   { text: 'Policies & Rules', icon: <DescriptionIcon />, path: '/app/policies' },
   { text: 'Scans', icon: <ScannerIcon />, path: '/app/scans' },
   { text: 'Violations', icon: <WarningIcon />, path: '/app/violations' },
@@ -48,6 +54,7 @@ const menuItems = [
 
 export default function MainLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [guidedDemoOpen, setGuidedDemoOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { mode, toggleTheme } = useThemeMode();
@@ -190,6 +197,20 @@ export default function MainLayout() {
               {mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
             </IconButton>
           </Tooltip>
+          <Tooltip title="Guided Demo">
+            <IconButton
+              onClick={() => setGuidedDemoOpen(true)}
+              sx={{
+                mr: 1,
+                bgcolor: 'rgba(40, 114, 161, 0.2)',
+                '&:hover': {
+                  bgcolor: 'rgba(40, 114, 161, 0.3)',
+                },
+              }}
+            >
+              <GuideIcon />
+            </IconButton>
+          </Tooltip>
           <Button
             color="inherit"
             startIcon={<LogoutIcon />}
@@ -246,6 +267,8 @@ export default function MainLayout() {
       >
         <Outlet />
       </Box>
+      
+      <GuidedDemoDrawer open={guidedDemoOpen} onClose={() => setGuidedDemoOpen(false)} />
     </Box>
   );
 }

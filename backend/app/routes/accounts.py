@@ -25,11 +25,26 @@ async def list_accounts(
     """
     db = get_database()
     
-    cursor = db.accounts.find({
-        "company_id": current_user.company_id
-    }).skip(offset).limit(limit)
+    # Build query - handle both with and without company_id for backward compatibility
+    query = {"company_id": current_user.company_id}
     
+    cursor = db.accounts.find(query).skip(offset).limit(limit)
     accounts = await cursor.to_list(length=limit)
+    
+    # If no accounts found with company_id, try without (for legacy data)
+    if not accounts:
+        cursor = db.accounts.find({}).skip(offset).limit(limit)
+        accounts = await cursor.to_list(length=limit)
+        # Add company_id to legacy accounts
+        for account in accounts:
+            if "company_id" not in account:
+                account["company_id"] = current_user.company_id
+    
+    # Ensure _id is converted to string for Pydantic
+    for account in accounts:
+        if "_id" in account:
+            account["_id"] = str(account["_id"])
+    
     return accounts
 
 

@@ -173,3 +173,76 @@ async def delete_rule(
         raise HTTPException(status_code=404, detail="Rule not found")
     
     return None
+
+
+
+@router.post("/{rule_id}/simulate")
+async def simulate_rule(
+    rule_id: str,
+    proposed_query: dict,
+    current_user: TokenData = Depends(get_current_user)
+):
+    """
+    Simulate rule with proposed parameters to see impact
+    Returns violations_before and violations_after
+    """
+    db = get_database()
+    
+    if not ObjectId.is_valid(rule_id):
+        raise HTTPException(status_code=400, detail="Invalid rule ID format")
+    
+    # Get current rule
+    rule = await db.rules.find_one({
+        "_id": ObjectId(rule_id),
+        "company_id": current_user.company_id
+    })
+    
+    if not rule:
+        raise HTTPException(status_code=404, detail="Rule not found")
+    
+    collection_name = rule["collection"]
+    current_query = rule["query"]
+    
+    # Check if collection exists
+    collection_names = await db.list_collection_names()
+    if collection_name not in collection_names:
+        return {
+            "violations_before": 0,
+            "violations_after": 0,
+            "breakdown_before": {"LOW": 0, "MEDIUM": 0, "HIGH": 0, "CRITICAL": 0},
+            "breakdown_after": {"LOW": 0, "MEDIUM": 0, "HIGH": 0, "CRITICAL": 0}
+        }
+    
+    target_collection = db[collection_name]
+    
+    # Execute current rule
+    scoped_current_query = current_query.copy()
+    scoped_current_query["company_id"] = current_user.company_id
+    
+    current_cursor = target_collection.find(scoped_current_query)
+    current_matches = await current_cursor.to_list(length=None)
+    violations_before = len(current_matches)
+    
+    # Execute proposed rule
+    scoped_proposed_query = proposed_query.copy()
+    scoped_proposed_query["company_id"] = current_user.company_id
+    
+    proposed_cursor = target_collection.find(scoped_proposed_query)
+    proposed_matches = await proposed_cursor.to_list(length=None)
+    violations_after = len(proposed_matches)
+    
+    # Simple severity breakdown (all same severity as rule)
+    severity = rule["severity"]
+    breakdown_before = {"LOW": 0, "MEDIUM": 0, "HIGH": 0, "CRITICAL": 0}
+    breakdown_after = {"LOW": 0, "MEDIUM": 0, "HIGH": 0, "CRITICAL": 0}
+    breakdown_before[severity] = violations_before
+    breakdown_after[severity] = violations_after
+    
+    return {
+        "violations_before": violations_before,
+        "violations_after": violations_after,
+        "breakdown_before": breakdown_before,
+        "breakdown_after": breakdown_after,
+        "change": violations_after - violations_before,
+        "change_percent": round(((violations_after - violations_before) / violations_before * 100) if violations_before > 0 else 0, 1)
+    }
