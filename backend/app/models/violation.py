@@ -35,10 +35,11 @@ class Violation(BaseModel):
     document_data: Dict[str, Any] = Field(description="Snapshot of violating document")
     severity: str
     status: ViolationStatus = ViolationStatus.OPEN
+    explanation: Optional[str] = Field(None, description="AI-generated explanation of the violation")
     reviewer_note: Optional[str] = None
     reviewed_by: Optional[str] = None
     reviewed_at: Optional[datetime] = None
-    remediation_suggestions: Optional[List[Dict[str, Any]]] = None
+    remediation_suggestions: Optional[List[Dict[str, Any]]] = Field(None, description="AI-generated remediation suggestions")
     assigned_to_user_id: Optional[str] = None
     assigned_to_user_name: Optional[str] = None
     comments: List[ViolationComment] = Field(default_factory=list)
