@@ -70,6 +70,8 @@ async def create_indexes():
     await db.violations.create_index([("scan_run_id", 1), ("rule_id", 1)])
     await db.violations.create_index("status")
     await db.violations.create_index("severity")
+    await db.violations.create_index("risk_level")
+    await db.violations.create_index([("risk_score", -1)])
     await db.violations.create_index("created_at")
     await db.violations.create_index("company_id")
     await db.violations.create_index("assigned_to_user_id")
@@ -80,5 +82,11 @@ async def create_indexes():
     await db.cases.create_index("severity")
     await db.cases.create_index("assigned_to_user_id")
     await db.cases.create_index("created_at")
+    
+    # ML models collection indexes
+    await db.ml_models.create_index("company_id")
+    await db.ml_models.create_index("model_version")
+    await db.ml_models.create_index([("company_id", 1), ("created_at", -1)])
+    await db.ml_models.create_index("status")
     
     print("Database indexes created successfully")

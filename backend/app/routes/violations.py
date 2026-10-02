@@ -21,6 +21,7 @@ async def list_violations(
     rule_id: Optional[str] = Query(None, description="Filter by rule ID"),
     severity: Optional[str] = Query(None, description="Filter by severity"),
     status: Optional[ViolationStatus] = Query(None, description="Filter by status"),
+    risk_level: Optional[str] = Query(None, description="Filter by risk level"),
     scan_run_id: Optional[str] = Query(None, description="Filter by scan run ID"),
     framework: Optional[str] = Query(None, description="Filter by framework"),
     control_id: Optional[str] = Query(None, description="Filter by control ID"),
@@ -42,6 +43,8 @@ async def list_violations(
         query_filter["severity"] = severity
     if status:
         query_filter["status"] = status
+    if risk_level:
+        query_filter["risk_level"] = risk_level
     if scan_run_id:
         query_filter["scan_run_id"] = scan_run_id
     
@@ -57,11 +60,11 @@ async def list_violations(
         rule_ids = [str(r["_id"]) for r in rules]
         query_filter["rule_id"] = {"$in": rule_ids}
     
-    # Execute query
-    cursor = db.violations.find(query_filter).sort("created_at", -1).skip(offset).limit(limit)
+    # Execute query with sorting by risk_score
+    cursor = db.violations.find(query_filter).sort([("risk_score", -1), ("created_at", -1)]).skip(offset).limit(limit)
     violations = await cursor.to_list(length=limit)
     
-    # Convert ObjectId to string and ensure comments field exists
+    # Convert ObjectId to string and ensure required fields exist
     for violation in violations:
         violation["_id"] = str(violation["_id"])
         if "comments" not in violation:
@@ -70,6 +73,19 @@ async def list_violations(
             violation["assigned_to_user_id"] = None
         if "assigned_to_user_name" not in violation:
             violation["assigned_to_user_name"] = None
+        # Ensure ML fields exist
+        if "risk_score" not in violation:
+            violation["risk_score"] = None
+        if "risk_level" not in violation:
+            violation["risk_level"] = None
+        if "ml_risk_score" not in violation:
+            violation["ml_risk_score"] = None
+        if "ml_model_version" not in violation:
+            violation["ml_model_version"] = None
+        if "ml_prediction" not in violation:
+            violation["ml_prediction"] = None
+        if "detection_sources" not in violation:
+            violation["detection_sources"] = None
     
     return [Violation(**violation) for violation in violations]
 

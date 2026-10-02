@@ -1,437 +1,662 @@
 # PolicyGuard
 
-**Continuous controls monitoring + AML case platform that turns policy PDFs into live MongoDB rules and shows real impact on your data in minutes.**
+**AI-Powered AML Compliance & Transaction Monitoring Platform**
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![React 18](https://img.shields.io/badge/react-18-blue.svg)](https://reactjs.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg)](https://fastapi.tiangolo.com/)
-[![MongoDB](https://img.shields.io/badge/MongoDB-4.4+-green.svg)](https://www.mongodb.com/)
-
-**Built for GDG Hackfest 2.0** | **Dataset: IBM AML Transaction Data**
+PolicyGuard is an enterprise-grade Anti-Money Laundering (AML) compliance platform that transforms policy documents into executable monitoring rules, combines machine learning anomaly detection with deterministic rule enforcement, and provides complete investigation workflow for financial crime prevention.
 
 ---
 
-## 🎯 The Problem
+## 🎯 What PolicyGuard Does
 
-Traditional compliance tools are either:
-- **Document Q&A bots** that answer questions but don't execute rules
-- **Static policy managers** that store PDFs without operational value  
-- **Manual review systems** requiring analysts to check every transaction
+- **Policy-to-Rule Translation**: Upload compliance policy PDFs and automatically generate executable MongoDB rules using Google Gemini AI
+- **ML Anomaly Detection**: Unsupervised Isolation Forest model with 14 behavioral features for transaction anomaly detection
+- **Hybrid Risk Scoring**: Combines policy rules (40%), ML predictions (30%), and AML patterns (30%) into unified risk scores
+- **AML Pattern Detection**: Structuring, rapid transfers, unusual frequency, round amounts, high-risk accounts, daily structuring
+- **Complete Investigation Workflow**: Violations → Cases → Audit Trail with multi-user assignment and evidence tracking
+- **Multi-Tenant SaaS**: Complete company isolation with role-based access control
 
-**Result:** Compliance teams spend weeks manually translating policies into code, then months investigating violations across disconnected systems.
+---
 
-## 💡 The PolicyGuard Solution
+## 🏗️ Architecture
 
-PolicyGuard is the **only hackathon project** that combines:
-
-1. ✅ **AI Policy-to-Rule Translation** - Gemini transforms PDF policies into executable MongoDB aggregation pipelines
-2. ✅ **Live Data Execution** - Rules run on real transactional data, not mock responses
-3. ✅ **Impact Simulation** - See how many violations a policy would catch BEFORE deploying
-4. ✅ **Enterprise Case Workflow** - Full investigation lifecycle from detection → case → remediation → audit
-5. ✅ **Multi-Tenant SaaS Architecture** - Production-ready with company isolation and RBAC
-6. ✅ **My Work Dashboard** - Personal task management for assigned cases and violations
-7. ✅ **Rule Tuning Simulator** - What-if analysis to optimize thresholds before deployment
-8. ✅ **Webhook Integrations** - Connect to Slack, email, or custom systems
-9. ✅ **Guided Demo** - Interactive walkthrough of the entire compliance workflow
-
-**Architecture Flow:**
 ```
-┌─────────────┐      ┌─────────────┐      ┌─────────────┐      ┌─────────────┐
-│  Policy PDF │─────▶│   Gemini    │─────▶│ MongoDB     │─────▶│ Violations  │
-│  (Upload)   │      │  (Extract)  │      │  Rules      │      │  (Detected) │
-└─────────────┘      └─────────────┘      └─────────────┘      └─────────────┘
-                                                  │                      │
-                                                  ▼                      ▼
-                                           ┌─────────────┐      ┌─────────────┐
-                                           │   Scans     │      │    Cases    │
-                                           │  (Execute)  │      │ (Investigate)│
-                                           └─────────────┘      └─────────────┘
-                                                  │                      │
-                                                  ▼                      ▼
-                                           ┌─────────────┐      ┌─────────────┐
-                                           │  Analytics  │      │ Audit Packs │
-                                           │ (Insights)  │      │  (Evidence) │
-                                           └─────────────┘      └─────────────┘
+Frontend (React + TypeScript)
+         ↓
+FastAPI Backend
+         ↓
+JWT Authentication + RBAC
+         ↓
+MongoDB (Tenant-Isolated)
+         ↓
+┌────────┴────────┐
+│                  │
+Policy Engine    Transaction Data
+│                  │
+Rule Generator   Feature Engineering
+│                  │
+Rule Executor ←── ML Model (Isolation Forest)
+│                  │
+└────────┬─────────┘
+         ↓
+   AML Patterns + Hybrid Risk Engine
+         ↓
+     Violations
+         ↓
+       Cases
+         ↓
+    Analytics
 ```
 
----
-
-## 🚀 Why PolicyGuard Stands Out
-
-### vs. Other Hackfest Projects
-
-| Feature | PolicyGuard | Typical Projects |
-|---------|-------------|------------------|
-| **Executes on Real Data** | ✅ MongoDB pipelines on 1000+ transactions | ❌ Mock responses or Q&A only |
-| **Policy Impact Preview** | ✅ Shows violations BEFORE deploying rules | ❌ No impact analysis |
-| **Rule Tuning Simulator** | ✅ What-if analysis with before/after counts | ❌ No simulation capability |
-| **Enterprise Case Management** | ✅ Full workflow with SLA tracking | ❌ Basic violation lists |
-| **My Work Dashboard** | ✅ Personal task management | ❌ No user-specific views |
-| **Multi-Tenant Architecture** | ✅ Production-ready SaaS with company isolation | ❌ Single-user demos |
-| **Webhook Integrations** | ✅ Connect to Slack, email, custom systems | ❌ No external integrations |
-| **Guided Demo** | ✅ Interactive 7-step walkthrough | ❌ No onboarding |
-| **Audit Trail** | ✅ Immutable activity logs | ❌ No audit capability |
-| **CSV Data Import** | ✅ Upload your own data | ❌ Fixed demo data only |
+**Key Flow:**
+1. **Policy Upload** → PDF text extraction → Gemini AI → Rules generated → Stored in MongoDB
+2. **Transaction Import** → CSV validation → Stored with company_id → Ready for scanning
+3. **Scan Execution** → Rule evaluation + AML patterns + ML prediction → Violations created
+4. **Risk Calculation** → Hybrid engine combines scores → Risk level assigned (LOW/MEDIUM/HIGH/CRITICAL)
+5. **Investigation** → Violations → Cases → Investigator assignment → Resolution
 
 ---
 
-## ✨ Key Features
+## 🛠️ Technology Stack
 
-### Core Compliance Platform
-- ✅ **Multi-Tenant Authentication** - Company registration, JWT auth, 3 user roles (Admin, Compliance Officer, Auditor)
-- ✅ **Dashboard** - Real-time metrics, violation trends, severity distribution
-- ✅ **Policy Management** - Upload PDFs, LLM extracts MongoDB rules with auto-scan
-- ✅ **Rule Engine** - Enable/disable rules, simulate impact, framework mapping
-- ✅ **Compliance Scans** - Manual/scheduled execution, scan history
-- ✅ **Violation Workflow** - Filter, review, update status, add notes, assign to users
-- ✅ **Account Risk Scoring** - Weighted risk calculation, violation history
+### Backend
+- **Framework**: FastAPI 0.109.0
+- **Database**: MongoDB (Motor 3.6.0 async driver)
+- **Authentication**: Argon2 + JWT
+- **AI/LLM**: Google Gemini (google-generativeai 0.3.2)
+- **ML**: scikit-learn 1.3.2, pandas 2.1.4, numpy 1.26.2
+- **PDF Processing**: PyMuPDF 1.23.8
+- **Testing**: pytest 7.4.3, pytest-asyncio 0.21.1
 
-### Advanced Features (What Makes Us Different)
-- ✅ **Policy Impact Analysis** - Auto-scan shows violations caught by new rules with top accounts/rules
-- ✅ **Rule Tuning Simulator** - Test threshold changes before deployment (violations before vs after)
-- ✅ **My Work Page** - Personal dashboard showing assigned cases and violations with SLA status
-- ✅ **Case Management** - Create cases from violations, link multiple violations, SLA tracking (L1/L2/QA levels)
-- ✅ **Activity Timeline** - Full audit trail of all status changes, assignments, comments
-- ✅ **Control Health Analytics** - Rule performance metrics, average violations per scan
-- ✅ **Top Risks Dashboard** - Top 5 risky rules and accounts by violation count
-- ✅ **Framework/Control Mapping** - AML-CTR-01, AML-STR-01, AML-HR-01 control IDs
-- ✅ **CSV Data Import** - Upload transactions, accounts, payroll data
-- ✅ **Webhook Integrations** - Configure webhooks for high-severity violations and case closures
-- ✅ **Guided Demo** - Interactive 7-step walkthrough of the entire platform
-- ✅ **Collaboration** - Comments and assignments on violations and cases
+### Frontend
+- **Framework**: React 19.2.0 + TypeScript 5.9.3
+- **Build Tool**: Vite 7.3.1
+- **UI Library**: Material-UI 6.5.0
+- **Routing**: React Router 7.13.0
+- **State Management**: TanStack Query 5.90.21
+- **Charts**: Recharts 3.7.0
+- **HTTP Client**: Axios 1.13.5
 
----
-
-## 🏗️ Tech Stack (FARM + AI)
-
-- **Backend**: FastAPI + Uvicorn + Motor (async MongoDB)
-- **Frontend**: React 18 + TypeScript + Vite + Material-UI + TanStack Query + Recharts
-- **Database**: MongoDB (multi-tenant with `company_id` scoping)
-- **AI/LLM**: Google Gemini API for policy-to-rule extraction
-- **Auth**: JWT with role-based access control (Admin, Compliance Officer, Auditor)
-- **Dataset**: IBM AML transaction data (1000 transactions, 100 accounts)
+### Infrastructure
+- **Containerization**: Docker + Docker Compose
+- **Deployment**: Railway, Vercel
+- **Database**: MongoDB Atlas (production)
 
 ---
 
-## 📊 Demo Flow (Guided Experience)
+## 📁 Repository Structure
 
-PolicyGuard includes an interactive **Guided Demo** button that walks you through:
-
-1. **Login** - Use demo credentials: `demo@amlbank.com` / `demo12345`
-2. **Upload Policy PDF** - Upload an AML compliance policy
-3. **Extract Rules with Auto-Scan** - AI generates rules and immediately shows impact
-4. **View Policy Impact** - See "This policy would have caught X violations (breakdown by severity)"
-5. **Review Violations** - Filter, assign, add comments
-6. **Create Case** - Link related violations into investigation cases
-7. **Check My Work** - View your assigned tasks with SLA status
-8. **Simulate Rule Changes** - Test threshold adjustments before deployment
-9. **Export Audit Pack** - Generate compliance evidence
+```
+policy_guard/
+├── README.md                    # This file
+├── SECURITY.md                  # Security policies
+├── LICENSE                      # License
+├── docker-compose.yml           # Docker setup
+├── verify_setup.ps1             # Prerequisites check
+│
+├── docs/                        # Documentation
+│   ├── ARCHITECTURE.md          # System architecture
+│   ├── API.md                   # API endpoints
+│   ├── ML_PIPELINE.md           # ML documentation
+│   ├── TESTING.md               # Testing guide
+│   ├── DEPLOYMENT.md            # Deployment guide
+│   ├── TROUBLESHOOTING.md       # Common issues
+│   └── FINAL_DIAGNOSTIC_REPORT.md
+│
+├── backend/                     # FastAPI backend
+│   ├── app/
+│   │   ├── routes/              # API endpoints
+│   │   ├── models/              # Pydantic models
+│   │   ├── services/            # Business logic
+│   │   ├── ml/                  # ML pipeline
+│   │   ├── config.py            # Configuration
+│   │   ├── db.py                # Database connection
+│   │   └── main.py              # FastAPI app
+│   │
+│   ├── tests/                   # Automated tests
+│   │   ├── test_security.py
+│   │   ├── test_integration.py
+│   │   ├── test_ml.py
+│   │   └── test_risk_engine.py
+│   │
+│   ├── scripts/                 # Utility scripts
+│   │   ├── seed_demo_data.py
+│   │   └── generate_synthetic_data.py
+│   │
+│   ├── sample_data/             # Sample CSV files
+│   ├── requirements.txt         # Python dependencies
+│   ├── .env.example             # Environment template
+│   ├── pytest.ini               # Pytest configuration
+│   ├── Dockerfile               # Docker image
+│   ├── railway.json             # Railway config
+│   └── run.py                   # Server startup
+│
+└── frontend/                    # React frontend
+    ├── src/
+    │   ├── features/            # Feature modules
+    │   ├── components/          # Reusable components
+    │   ├── services/            # API clients
+    │   ├── hooks/               # Custom hooks
+    │   └── config/              # Configuration
+    │
+    ├── package.json             # Node dependencies
+    ├── .env.example             # Environment template
+    ├── vite.config.ts           # Vite configuration
+    └── tsconfig.json            # TypeScript config
+```
 
 ---
 
-## 🚀 Quick Start
+## ⚡ Quick Start
 
 ### Prerequisites
 
-```bash
-# Required
+**Required:**
 - Python 3.11+
-- Node.js 18+
-- MongoDB 4.4+
-- Google Gemini API key
+- Node.js 18+ and npm
+- MongoDB 4.4+ (local or MongoDB Atlas)
+- Git
+
+**Optional:**
+- Docker Desktop (for containerized setup)
+
+**Verify Prerequisites:**
+```powershell
+.\verify_setup.ps1
 ```
 
-### 1️⃣ Clone Repository
+---
 
-```bash
-git clone https://github.com/ShivanshSingh1175/Policy_Guard.git
-cd Policy_Guard
-```
-
-### 2️⃣ Setup Backend
+### 1. Clone Repository
 
 ```powershell
-# Run automated setup
-.\setup.ps1
-
-# Or manual setup
-cd backend
-python -m venv venv
-.\venv\Scripts\Activate.ps1
-pip install -r requirements.txt
+git clone <repository-url>
+cd policy_guard
 ```
 
-**Configure Environment** (`backend/.env`):
+---
+
+### 2. Backend Setup
+
+```powershell
+cd backend
+
+# Create virtual environment
+python -m venv venv
+
+# Activate virtual environment
+.\venv\Scripts\Activate.ps1
+
+# Install dependencies
+python -m pip install -r requirements.txt
+
+# Verify installation
+python -m pip check
+```
+
+---
+
+### 3. Environment Configuration
+
+#### Backend Environment
+
+```powershell
+# Copy example to .env
+cp .env.example .env
+```
+
+Edit `backend/.env`:
+
 ```env
+# MongoDB Configuration
 MONGO_URI=mongodb://localhost:27017
 MONGO_DB_NAME=policyguard
-JWT_SECRET_KEY=your-secret-key-change-in-production
-GEMINI_API_KEY=your-gemini-api-key
+
+# JWT Authentication (REQUIRED: Generate secure secret)
+JWT_SECRET_KEY=<your-secure-random-secret-32-chars-minimum>
+JWT_ALGORITHM=HS256
+JWT_EXPIRE_MINUTES=1440
+
+# Google Gemini API (REQUIRED for rule generation)
+GEMINI_API_KEY=<your-gemini-api-key>
+LLM_MODEL=gemini-pro
+LLM_TEMPERATURE=0.7
+
+# Application Configuration
+APP_ENV=development
+DEBUG=true
+
+# CORS (add frontend URL)
 CORS_ORIGINS=http://localhost:5173,http://localhost:5174
 ```
 
-### 3️⃣ Start MongoDB
-
+**Generate JWT Secret:**
 ```powershell
-# Option A: Docker
-docker run -d -p 27017:27017 --name mongodb mongo:latest
-
-# Option B: Local service
-net start MongoDB
+python -c "import secrets; print(secrets.token_urlsafe(32))"
 ```
 
-### 4️⃣ Seed Demo Data
+**Get Gemini API Key:**
+Visit https://makersuite.google.com/app/apikey
+
+#### Frontend Environment
+
+```powershell
+cd ../frontend
+
+# Copy example to .env
+cp .env.example .env
+```
+
+Edit `frontend/.env`:
+
+```env
+# Backend API URL
+VITE_API_URL=http://localhost:8000
+
+# Firebase (Optional - only if using Firebase auth)
+VITE_FIREBASE_API_KEY=
+VITE_FIREBASE_AUTH_DOMAIN=
+VITE_FIREBASE_PROJECT_ID=
+```
+
+---
+
+### 4. MongoDB Setup
+
+#### Option A: Local MongoDB (Development)
+
+**Windows:**
+1. Download from https://www.mongodb.com/try/download/community
+2. Install with default settings
+3. MongoDB runs as a Windows service automatically
+4. Verify: `mongosh` in terminal
+
+**Verify Connection:**
+```powershell
+cd backend
+python -c "from app.db import connect_to_mongo; import asyncio; asyncio.run(connect_to_mongo())"
+```
+
+#### Option B: MongoDB Atlas (Production)
+
+1. Create account at https://www.mongodb.com/cloud/atlas
+2. Create free cluster
+3. Add your IP to whitelist
+4. Get connection string
+5. Update `MONGO_URI` in `backend/.env`:
+   ```
+   MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/
+   ```
+
+---
+
+### 5. Start Backend
 
 ```powershell
 cd backend
-python scripts/seed_demo_data.py
-```
-
-This creates:
-- Demo company: "AML Demo Bank"
-- Demo user: `demo@amlbank.com` / `demo12345`
-- 100 accounts, 1000 transactions
-- 2 policies, 4 rules, 158 violations, 2 cases
-
-### 5️⃣ Start Backend
-
-```powershell
-cd backend
+.\venv\Scripts\Activate.ps1
 python run.py
 ```
 
-Backend runs at: `http://localhost:8000`
-API Docs: `http://localhost:8000/docs`
+**Backend runs at:** http://localhost:8000
+**API Documentation:** http://localhost:8000/docs
+**Health Check:** http://localhost:8000/health
 
-### 6️⃣ Setup Frontend
+---
+
+### 6. Start Frontend
 
 ```powershell
 cd frontend
+
+# Install dependencies (first time only)
 npm install
+
+# Start development server
 npm run dev
 ```
 
-Frontend runs at: `http://localhost:5173`
-
-### 7️⃣ Access Application
-
-1. Open `http://localhost:5173`
-2. Login with: `demo@amlbank.com` / `demo12345`
-3. Click the **Guided Demo** button (compass icon) in the top right
-4. Follow the 7-step interactive walkthrough
+**Frontend runs at:** http://localhost:5173
 
 ---
 
-## 📤 Company Data Import
+### 7. Seed Demo Data (Optional)
 
-Upload your own data via CSV files:
-
-### Transactions CSV
-```csv
-date,amount,from_account,to_account,type,currency,channel
-2024-01-15,15000,ACC001,ACC002,WIRE,USD,ONLINE
+```powershell
+cd backend
+.\venv\Scripts\Activate.ps1
+python scripts/seed_demo_data.py
 ```
 
-### Accounts CSV
-```csv
-account_id,customer_id,customer_name,country,risk_score,segment
-ACC001,CUST001,John Doe,US,45,RETAIL
-```
-
-### Payroll CSV
-```csv
-employee_id,name,salary,department,bank_account,pay_date
-EMP001,Alice Johnson,75000,Engineering,ACC123,2024-01-31
-```
-
-**Import via:** Settings → Data Import → Select CSV file
+**Demo Login:**
+- Email: `demo@amlbank.com`
+- Password: `demo12345`
 
 ---
 
-## 🎯 Unique Features Explained
+## 🧪 Testing
 
-### 1. Policy Impact Analysis
+### Run All Tests
 
-When you extract rules from a policy PDF with auto-scan enabled:
-
-```json
-{
-  "rules_created": 5,
-  "scan_summary": {
-    "total_violations": 23,
-    "high": 8,
-    "medium": 12,
-    "low": 3,
-    "top_rules": [
-      {"rule_name": "Large Cash Transactions", "count": 12},
-      {"rule_name": "Structuring Detection", "count": 8}
-    ],
-    "top_accounts": [
-      {"account_id": "ACC042", "count": 5},
-      {"account_id": "ACC089", "count": 4}
-    ]
-  }
-}
+```powershell
+cd backend
+.\venv\Scripts\Activate.ps1
+python -m pytest -v
 ```
 
-**Why it matters:** See the real impact of a policy BEFORE deploying it to production.
+**Expected Result:** 22/22 tests passing
 
-### 2. Rule Tuning Simulator
+### Test Categories
 
-Test threshold changes before deployment:
+- **Security Tests (7)**: Authentication, authorization, input validation
+- **Integration Tests (2)**: Tenant isolation, feature extraction pipeline
+- **ML Tests (7)**: Feature engineering, model training, prediction, persistence
+- **Risk Engine Tests (6)**: Hybrid scoring, risk level calculation
 
-```bash
-POST /rules/{rule_id}/simulate
-{
-  "proposed_query": {
-    "transaction_type": "CASH",
-    "amount": { "$gte": 5000 }  # Changed from $10,000
-  }
-}
+### Run Specific Test Suite
+
+```powershell
+# Security only
+python -m pytest tests/test_security.py -v
+
+# ML only
+python -m pytest tests/test_ml.py -v
+
+# Integration only
+python -m pytest tests/test_integration.py -v
 ```
-
-**Response:**
-```json
-{
-  "violations_before": 12,
-  "violations_after": 28,
-  "change": +16,
-  "change_percent": 133.3
-}
-```
-
-**Why it matters:** Optimize thresholds without creating noise or missing violations.
-
-### 3. My Work Dashboard
-
-Personal task management showing:
-- Cases assigned to you with SLA status (ON_TRACK, AT_RISK, BREACHED)
-- Violations assigned to you
-- Critical items requiring immediate attention
-- Progress tracking
-
-**Why it matters:** Compliance officers know exactly what needs their attention.
-
-### 4. Enterprise Case Management
-
-- Link multiple violations into investigation cases
-- SLA tracking with due dates
-- Investigation levels (L1, L2, QA)
-- Activity timeline showing all changes
-- Comments and collaboration
-
-**Why it matters:** Handle complex investigations spanning multiple violations.
 
 ---
 
-## 🔧 API Endpoints (50+)
+## 🎯 End-to-End Testing
+
+### Manual E2E Test Flow
+
+1. **Register Company**
+   - Navigate to http://localhost:5173
+   - Click "Register" → Create company account
+
+2. **Login**
+   - Use credentials to login
+   - Verify dashboard loads
+
+3. **Import Transactions**
+   - Navigate to "Data Import"
+   - Upload `backend/sample_data/sample_transactions.csv`
+   - Verify import success
+
+4. **Upload Policy**
+   - Navigate to "Policies"
+   - Upload PDF policy document
+   - Click "Extract Rules"
+   - Verify rules generated
+
+5. **Run Scan**
+   - Navigate to "Scans"
+   - Click "Run Scan"
+   - Wait for completion
+   - Verify violations created
+
+6. **Review Violations**
+   - Navigate to "Violations"
+   - Verify risk scores (rule + ML + AML)
+   - Check violation details
+
+7. **Create Case**
+   - Select violation(s)
+   - Click "Create Case"
+   - Assign to investigator
+   - Add notes
+
+8. **View Analytics**
+   - Navigate to "Analytics"
+   - Verify charts and metrics
+
+### Automated E2E Script
+
+```powershell
+cd backend
+python test_e2e.py
+```
+
+**Note:** Requires backend running at http://localhost:8000
+
+---
+
+## 🤖 ML Pipeline
+
+### Training
+
+The ML model is trained per-company using historical transaction data.
+
+**Train Model:**
+```powershell
+# Via API (authenticated)
+POST /ml/train
+{
+  "model_version": "v1"
+}
+```
+
+**Algorithm:** Isolation Forest (unsupervised anomaly detection)
+
+**Features (14):**
+1. `amount` - Transaction amount
+2. `hour_of_day` - Time pattern (0-23)
+3. `day_of_week` - Day pattern (0-6)
+4. `is_weekend` - Weekend flag
+5. `is_cash` - Cash transaction flag
+6. `is_wire` - Wire transfer flag
+7. `is_international` - International flag
+8. `near_threshold` - Close to $10K
+9. `exact_10k` - Exactly $10K (structuring indicator)
+10. `amount_rounded` - Round number pattern
+11. `account_age_days` - Account age
+12. `transaction_frequency` - Historical frequency
+13. `avg_amount` - Average amount
+14. `unusual_amount` - Deviation from average
+
+**Model Storage:** MongoDB (binary joblib format per company)
+
+### Inference
+
+During scan execution:
+1. Latest model loaded for company
+2. Features extracted from transaction
+3. Anomaly score generated (-1 to 1)
+4. Score converted to 0-100 risk score
+5. Combined with rule + AML scores
+
+---
+
+## 🔐 Security
 
 ### Authentication
-- `POST /auth/register-company` - Register company + admin
-- `POST /auth/login` - Login with email/password
+- Argon2 password hashing
+- JWT token-based authentication
+- 24-hour token expiration (configurable)
 
-### Policies & Rules
-- `POST /policies/upload` - Upload PDF policy
-- `POST /policies/{id}/extract-rules?auto_scan=true` - Extract rules with impact analysis
-- `GET /rules` - List rules with filters
-- `POST /rules/{id}/simulate` - Simulate rule changes
+### Authorization
+- Role-based access control (RBAC)
+- Protected endpoints require valid Bearer token
+- User roles: Admin, Manager, Investigator, Analyst
 
-### Scans & Violations
-- `POST /scans/run` - Execute compliance scan
-- `GET /violations` - List violations with filters
-- `PATCH /violations/{id}/assign` - Assign to user
+### Tenant Isolation
+- **Critical:** All queries filter by `company_id`
+- Company ID extracted from JWT token
+- 35+ enforcement points verified
+- Integration tests confirm isolation
 
-### Cases
-- `POST /cases` - Create case from violations
-- `GET /cases` - List cases with SLA status
-- `POST /cases/{id}/comment` - Add comment
+### Input Security
+- Pydantic schema validation
+- File type and size validation
+- MongoDB ObjectId format validation
+- NoSQL injection prevention
 
-### My Work
-- `GET /my-work/cases` - Get assigned cases
-- `GET /my-work/violations` - Get assigned violations
-
-### Data Import
-- `POST /data/import/transactions` - Import transactions CSV
-- `POST /data/import/accounts` - Import accounts CSV
-- `POST /data/import/payroll` - Import payroll CSV
-
-### Analytics
-- `GET /analytics/control-health` - Rule performance metrics
-- `GET /analytics/top-risks` - Top 5 rules and accounts
+**See [SECURITY.md](SECURITY.md) for complete security documentation.**
 
 ---
 
-## 🎨 UI/UX Highlights
+## 📖 Documentation
 
-- **Dark Mode Theme** - Professional deep blue palette (#2872A1)
-- **Smooth Animations** - Card hover effects, page transitions
-- **Skeleton Loaders** - Professional loading states
-- **Empty States** - Helpful guidance when no data
-- **Guided Demo** - Interactive 7-step walkthrough
-- **Responsive Design** - Works on desktop and tablet
-- **Severity Colors** - Consistent color coding (GREEN=LOW, AMBER=MEDIUM, ORANGE=HIGH, RED=CRITICAL)
-
----
-
-## 📸 Screenshots
-
-### Dashboard
-![Dashboard](docs/screenshots/dashboard.png)
-Real-time metrics, violation trends, and severity distribution
-
-### Policy Impact Analysis
-![Policy Impact](docs/screenshots/policy-impact.png)
-See violations caught by new rules before deployment
-
-### My Work
-![My Work](docs/screenshots/my-work.png)
-Personal task dashboard with SLA tracking
-
-### Rule Tuning Simulator
-![Rule Tuning](docs/screenshots/rule-tuning.png)
-What-if analysis for threshold optimization
-
-### Case Management
-![Cases](docs/screenshots/cases.png)
-Enterprise investigation workflow with activity timeline
+- **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - System architecture and data flow
+- **[API.md](docs/API.md)** - API endpoints and usage
+- **[ML_PIPELINE.md](docs/ML_PIPELINE.md)** - Machine learning pipeline
+- **[TESTING.md](docs/TESTING.md)** - Testing guide
+- **[DEPLOYMENT.md](docs/DEPLOYMENT.md)** - Production deployment
+- **[TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)** - Common issues and solutions
 
 ---
 
-## 🏆 What Makes This Production-Ready
+## 🚨 Troubleshooting
 
-1. **Multi-Tenancy** - Complete company isolation with `company_id` scoping
-2. **RBAC** - Role-based access control (Admin, Compliance Officer, Auditor)
-3. **JWT Authentication** - Secure token-based auth
-4. **Error Handling** - Comprehensive error boundaries and user-friendly messages
-5. **Audit Trail** - Immutable activity logs for compliance
-6. **Data Validation** - Pydantic models with strict validation
-7. **API Documentation** - Auto-generated Swagger/OpenAPI docs
-8. **Type Safety** - Full TypeScript coverage on frontend
-9. **Responsive Design** - Works across devices
-10. **Performance** - Async MongoDB queries, React Query caching
+### Python Not Found
+```powershell
+# Add Python to PATH or use full path
+py -m venv venv
+```
+
+### MongoDB Connection Failed
+```powershell
+# Verify MongoDB is running
+mongosh
+
+# Check connection string in .env
+MONGO_URI=mongodb://localhost:27017
+```
+
+### Port Already in Use
+```powershell
+# Backend (8000)
+netstat -ano | findstr :8000
+taskkill /PID <pid> /F
+
+# Frontend (5173)
+netstat -ano | findstr :5173
+taskkill /PID <pid> /F
+```
+
+### Environment Variables Not Loading
+- Verify `.env` file exists (not `.env.example`)
+- Check file is in correct directory (backend/ or frontend/)
+- Restart server after changing `.env`
+
+### Pytest Failures
+```powershell
+# Verify MongoDB is running
+# Check all dependencies installed
+python -m pip check
+
+# Run with verbose output
+python -m pytest -v --tb=short
+```
+
+### Frontend Build Errors
+```powershell
+# Clear cache and reinstall
+rm -r node_modules
+rm package-lock.json
+npm install
+```
+
+**See [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) for more solutions.**
 
 ---
 
-## 📝 License
+## 🚀 Production Deployment
 
-MIT License - see [LICENSE](LICENSE) file
+### Environment Variables Required
+
+**Backend:**
+- `MONGO_URI` - MongoDB Atlas connection string
+- `JWT_SECRET_KEY` - Secure random secret (32+ chars)
+- `GEMINI_API_KEY` - Google Gemini API key
+- `CORS_ORIGINS` - Production frontend URL
+- `APP_ENV=production`
+- `DEBUG=false`
+
+**Frontend:**
+- `VITE_API_URL` - Production backend URL
+
+### Railway Deployment (Backend)
+
+```powershell
+# Install Railway CLI
+npm install -g @railway/cli
+
+# Login
+railway login
+
+# Initialize
+railway init
+
+# Deploy
+railway up
+```
+
+Railway automatically detects `railway.json` configuration.
+
+### Vercel Deployment (Frontend)
+
+```powershell
+# Install Vercel CLI
+npm install -g vercel
+
+# Deploy
+cd frontend
+vercel
+```
+
+Vercel automatically detects `vercel.json` configuration.
+
+**See [DEPLOYMENT.md](docs/DEPLOYMENT.md) for complete deployment guide.**
 
 ---
 
-## 👥 Team
+## 📊 Project Status
 
-Built by **Shivansh Singh** for GDG Hackfest 2.0
+- ✅ **Backend**: Fully implemented and tested (22/22 tests passing)
+- ✅ **Frontend**: Production build successful
+- ✅ **Security**: Verified (authentication, authorization, tenant isolation)
+- ✅ **ML Pipeline**: Operational (Isolation Forest with 14 features)
+- ✅ **AML Patterns**: 6 patterns implemented
+- ✅ **Hybrid Risk Engine**: Validated
+- ✅ **Database**: MongoDB with tenant isolation
+- ⚠️ **Production Ready**: Requires environment configuration
+
+**External Requirements:**
+1. Generate and set `JWT_SECRET_KEY`
+2. Obtain and set `GEMINI_API_KEY`
+3. Configure production MongoDB (MongoDB Atlas)
+4. Set production `CORS_ORIGINS`
 
 ---
 
-## 🙏 Acknowledgments
+## 📄 License
 
-- **GDG Hackfest 2.0** for the opportunity
-- **IBM AML Dataset** for realistic transaction data
-- **Google Gemini** for AI-powered rule extraction
-- **FastAPI** and **React** communities for excellent frameworks
+See [LICENSE](LICENSE) file for details.
 
 ---
 
-**PolicyGuard** - Continuous controls monitoring + AML case platform that turns policy PDFs into live MongoDB rules and shows real impact on your data in minutes.
+## 🤝 Contributing
+
+This is a demonstration project. For production use, consider:
+- Enhanced error handling and logging
+- Rate limiting on authentication endpoints
+- Comprehensive audit logging
+- Advanced monitoring and alerting
+- Load testing and performance optimization
+- Security audit and penetration testing
+
+---
+
+## 📧 Support
+
+For issues or questions:
+1. Check [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
+2. Review [API.md](docs/API.md) for endpoint details
+3. Check automated tests for examples
+4. Review [ARCHITECTURE.md](docs/ARCHITECTURE.md) for system design
+
+---
+
+**PolicyGuard** - AI-Powered AML Compliance Platform

@@ -11,10 +11,12 @@ from app.models.user import TokenData, UserRole
 # Password hashing - use argon2 to avoid bcrypt 72-byte limit issues
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
-# JWT settings
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-secret-key-change-in-production")
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
+# JWT settings from config
+from app.config import settings
+
+SECRET_KEY = settings.JWT_SECRET_KEY
+ALGORITHM = settings.JWT_ALGORITHM
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.JWT_EXPIRE_MINUTES
 
 
 def hash_password(password: str) -> str:

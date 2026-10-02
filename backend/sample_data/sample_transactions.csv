@@ -1,0 +1,6 @@
+date,amount,from_account,to_account,type,currency,channel,description
+2024-02-15,15000,ACC101,ACC102,WIRE,USD,ONLINE,Wire transfer
+2024-02-15,9500,ACC103,ACC104,CASH,USD,BRANCH,Cash deposit
+2024-02-16,25000,ACC105,ACC106,WIRE,USD,ONLINE,International wire
+2024-02-16,8000,ACC107,ACC108,TRANSFER,USD,MOBILE,Mobile transfer
+2024-02-17,12000,ACC109,ACC110,WIRE,USD,ONLINE,Business payment

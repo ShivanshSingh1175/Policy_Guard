@@ -16,7 +16,7 @@ from app.routes.auth import get_current_user, TokenData
 router = APIRouter()
 
 
-@router.post("/upload", response_model=PolicyOut, status_code=201)
+@router.post("/policies/upload", response_model=PolicyOut, status_code=201)
 async def upload_policy(
     file: UploadFile = File(...),
     name: str = Form(...),
@@ -31,8 +31,17 @@ async def upload_policy(
     if not file.filename.endswith('.pdf'):
         raise HTTPException(status_code=400, detail="Only PDF files are supported")
     
-    # Read file content
+    # Validate file size
     file_content = await file.read()
+    if len(file_content) > settings.MAX_UPLOAD_SIZE:
+        raise HTTPException(
+            status_code=413,
+            detail=f"File too large. Maximum size: {settings.MAX_UPLOAD_SIZE} bytes"
+        )
+    
+    # Validate filename
+    if len(file.filename) > 255:
+        raise HTTPException(status_code=400, detail="Filename too long")
     
     # Extract text from PDF
     try:

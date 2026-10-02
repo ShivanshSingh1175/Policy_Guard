@@ -155,11 +155,11 @@ export default function DashboardPage() {
                   <IconButton size="small"><RuleIcon fontSize="small" /></IconButton>
                 </MuiTooltip>
               </Box>
-              <Box sx={{ height: 320 }}>
+              <Box sx={{ height: 320, minHeight: 320, width: '100%' }}>
                 {isLoading ? (
                   <Skeleton variant="rounded" height="100%" />
                 ) : (
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%" minHeight={320}>
                     <BarChart data={severityBarData}>
                       <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} vertical={false} />
                       <XAxis
@@ -209,11 +209,11 @@ export default function DashboardPage() {
           <Card sx={{ height: '100%', bgcolor: alpha(theme.palette.primary.main, 0.02) }}>
             <CardContent>
               <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>Engine Activity</Typography>
-              <Box sx={{ height: 320 }}>
+              <Box sx={{ height: 320, minHeight: 320, width: '100%' }}>
                 {isLoading ? (
                   <Skeleton variant="rounded" height="100%" />
                 ) : (
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%" minHeight={320}>
                     <LineChart data={trendData}>
                       <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} vertical={false} />
                       <XAxis

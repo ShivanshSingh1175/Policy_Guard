@@ -1,0 +1,6 @@
+employee_id,name,salary,department,bank_account,pay_date,payment_method,status
+EMP001,Alice Johnson,75000,Engineering,ACC201,2024-02-28,BANK_TRANSFER,PAID
+EMP002,Bob Smith,85000,Engineering,ACC202,2024-02-28,BANK_TRANSFER,PAID
+EMP003,Carol Davis,65000,Marketing,ACC203,2024-02-28,BANK_TRANSFER,PAID
+EMP004,David Wilson,95000,Sales,ACC204,2024-02-28,BANK_TRANSFER,PAID
+EMP005,Eve Martinez,70000,HR,ACC205,2024-02-28,BANK_TRANSFER,PAID

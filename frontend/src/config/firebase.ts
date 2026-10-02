@@ -1,15 +1,15 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
 
-// Hardcoded config for testing - will use env vars if available
+// Firebase configuration - use environment variables only
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyDd--aH-CUOIqpGqI19EKnD5zELazXc2qA",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "policyguard-49695.firebaseapp.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "policyguard-49695",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "policyguard-49695.firebasestorage.app",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "980469529435",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:980469529435:web:acd0e1e273dbd14496787e",
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-C8QL5P4YQD",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "",
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "",
 };
 
 // Debug: Log config to verify environment variables are loaded

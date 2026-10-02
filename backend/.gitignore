@@ -38,6 +38,10 @@ wheels/
 *.log
 logs/
 
+# ML models
+models/*.joblib
+models/*.pkl
+
 # Testing
 .pytest_cache/
 .coverage

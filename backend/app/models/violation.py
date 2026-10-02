@@ -24,7 +24,7 @@ class ViolationComment(BaseModel):
 
 
 class Violation(BaseModel):
-    """Model for a violation document"""
+    """Model for a violation document with ML integration"""
     id: str = Field(validation_alias="_id")
     company_id: str
     scan_run_id: str
@@ -35,6 +35,13 @@ class Violation(BaseModel):
     document_data: Dict[str, Any] = Field(description="Snapshot of violating document")
     severity: str
     status: ViolationStatus = ViolationStatus.OPEN
+    # ML and risk scoring fields
+    risk_score: Optional[float] = Field(None, description="Combined risk score 0-100")
+    risk_level: Optional[str] = Field(None, description="Risk level: LOW, MEDIUM, HIGH, CRITICAL")
+    ml_risk_score: Optional[float] = Field(None, description="ML anomaly score 0-100")
+    ml_model_version: Optional[str] = Field(None, description="ML model version used")
+    ml_prediction: Optional[str] = Field(None, description="ML prediction category")
+    detection_sources: Optional[List[str]] = Field(None, description="Detection sources: RULE_ENGINE, ML_ANOMALY, AML_PATTERN")
     explanation: Optional[str] = Field(None, description="AI-generated explanation of the violation")
     reviewer_note: Optional[str] = None
     reviewed_by: Optional[str] = None

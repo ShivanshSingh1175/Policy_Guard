@@ -9,7 +9,7 @@ body {
   font-family: 'Sora', 'Inter', 'Roboto', 'Helvetica', 'Arial', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: linear-gradient(135deg, #0A1929 0%, #132F4C 100%);
+  /* Background is controlled by MUI theme */
 }
 
 #root {
@@ -76,11 +76,4 @@ body {
   );
   background-size: 1000px 100%;
   animation: shimmer 2s infinite;
-}
-
-/* Smooth transitions */
-* {
-  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }

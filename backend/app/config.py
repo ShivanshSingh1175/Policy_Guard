@@ -14,12 +14,12 @@ class Settings(BaseSettings):
     MONGO_DB_NAME: str = "policyguard"
     
     # JWT Authentication
-    JWT_SECRET_KEY: str = "your-secret-key-change-in-production"
+    JWT_SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRE_MINUTES: int = 1440
     
     # LLM Configuration (Google Gemini)
-    GEMINI_API_KEY: str = "AIzaSyCt0mvrqZyqMbWgv1_ce0sIUyB-IjwYWNA"
+    GEMINI_API_KEY: str
     LLM_MODEL: str = "gemini-pro"
     LLM_TEMPERATURE: float = 0.7
     
@@ -37,6 +37,11 @@ class Settings(BaseSettings):
     # Pagination defaults
     DEFAULT_PAGE_SIZE: int = 50
     MAX_PAGE_SIZE: int = 200
+    
+    # ML Configuration
+    MODELS_DIR: str = "models"
+    ML_MIN_SAMPLES: int = 100
+    ML_CONTAMINATION: float = 0.05
     
     class Config:
         env_file = ".env"

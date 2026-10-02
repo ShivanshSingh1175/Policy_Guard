@@ -167,6 +167,7 @@ async def execute_rule(
 ) -> List[Dict[str, Any]]:
     """
     Execute a single rule's query against its target collection
+    Integrated with ML-based anomaly detection via hybrid risk engine
     
     Args:
         db: Database instance
@@ -176,8 +177,12 @@ async def execute_rule(
     Returns:
         List of violation documents created
     """
+    from app.services.hybrid_risk_engine import HybridRiskEngine
+    from app.ml.ml_service import MLService
+    
     collection_name = rule["collection"]
     query = rule["query"]
+    company_id = rule["company_id"]
     
     # Check if collection exists
     collection_names = await db.list_collection_names()
@@ -190,18 +195,33 @@ async def execute_rule(
     
     # Ensure query is scoped by company_id
     scoped_query = query.copy()
-    scoped_query["company_id"] = rule["company_id"]
+    scoped_query["company_id"] = company_id
     
     cursor = target_collection.find(scoped_query)
     matching_docs = await cursor.to_list(length=None)
+    
+    # Initialize ML service
+    ml_service = MLService()
     
     # Create violation records
     violations = []
     now = datetime.utcnow()
     
     for doc in matching_docs:
+        # Get ML prediction if this is a transaction
+        ml_result = None
+        if collection_name == "transactions":
+            ml_result = await ml_service.predict(db, doc, company_id)
+        
+        # Calculate hybrid risk
+        risk_engine = HybridRiskEngine()
+        hybrid_risk = risk_engine.calculate_hybrid_risk(
+            rule=rule,
+            ml_result=ml_result
+        )
+        
         violation_doc = {
-            "company_id": rule["company_id"],
+            "company_id": company_id,
             "scan_run_id": scan_run_id,
             "rule_id": str(rule["_id"]),
             "rule_name": rule["name"],
@@ -210,6 +230,15 @@ async def execute_rule(
             "document_data": sanitize_document(doc),
             "severity": rule["severity"],
             "status": "OPEN",
+            # Hybrid risk fields
+            "risk_score": hybrid_risk['risk_score'],
+            "risk_level": hybrid_risk['risk_level'],
+            "ml_risk_score": hybrid_risk['ml_score'],
+            "ml_model_version": hybrid_risk.get('model_version'),
+            "ml_prediction": hybrid_risk.get('ml_prediction'),
+            "detection_sources": hybrid_risk['detection_sources'],
+            "explanation": "; ".join(hybrid_risk['reasons']),
+            # Existing fields
             "reviewer_note": None,
             "reviewed_by": None,
             "reviewed_at": None,

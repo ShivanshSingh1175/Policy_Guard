@@ -9,8 +9,9 @@ from contextlib import asynccontextmanager
 from app.db import connect_to_mongo, close_mongo_connection
 from app.routes import (
     policies, rules, scans, violations, test_llm, dashboard, 
-    auth, accounts, settings, cases, analytics, data_import, dataset
+    auth, accounts, cases, analytics, data_import, dataset, ml
 )
+from app.routes import settings as settings_router
 
 
 @asynccontextmanager
@@ -31,9 +32,11 @@ app = FastAPI(
 )
 
 # CORS middleware for React frontend
+from app.config import settings
+allowed_origins = settings.CORS_ORIGINS.split(",") if settings.CORS_ORIGINS else []
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -49,9 +52,10 @@ app.include_router(violations.router, prefix="/violations", tags=["Violations"])
 app.include_router(cases.router, prefix="/cases", tags=["Cases"])
 app.include_router(analytics.router, prefix="/analytics", tags=["Analytics"])
 app.include_router(accounts.router, tags=["Accounts"])
-app.include_router(settings.router, tags=["Settings"])
+app.include_router(settings_router.router, tags=["Settings"])
 app.include_router(data_import.router, prefix="/data", tags=["Data Import"])
 app.include_router(dataset.router, prefix="/dataset", tags=["Dataset Recommendations"])
+app.include_router(ml.router, prefix="/ml", tags=["Machine Learning"])
 app.include_router(test_llm.router, prefix="/test-llm", tags=["LLM Testing"])
 
 
@@ -67,8 +71,18 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    """Detailed health check"""
-    return {
-        "status": "healthy",
-        "database": "connected"
-    }
+    """Detailed health check with actual MongoDB connectivity test"""
+    from app.db import get_database
+    try:
+        db = get_database()
+        await db.command('ping')
+        return {
+            "status": "healthy",
+            "database": "connected"
+        }
+    except Exception as e:
+        return {
+            "status": "unhealthy",
+            "database": "disconnected",
+            "error": str(e)
+        }

@@ -38,12 +38,24 @@ async def import_transactions(
     if not file.filename.endswith('.csv'):
         raise HTTPException(status_code=400, detail="Only CSV files are supported")
     
-    # Read and parse CSV
+    # Read and validate file size
     file_content = await file.read()
+    from app.config import settings
+    if len(file_content) > settings.MAX_UPLOAD_SIZE:
+        raise HTTPException(
+            status_code=413,
+            detail=f"File too large. Maximum size: {settings.MAX_UPLOAD_SIZE} bytes"
+        )
+    
+    # Parse CSV
     rows = parse_csv_file(file_content)
     
     if not rows:
         raise HTTPException(status_code=400, detail="CSV file is empty")
+    
+    # Limit rows to prevent DoS
+    if len(rows) > 10000:
+        raise HTTPException(status_code=400, detail="Too many rows. Maximum 10,000 rows per upload")
     
     # Validate required columns
     required_columns = ['date', 'amount', 'from_account', 'to_account']
@@ -64,12 +76,17 @@ async def import_transactions(
     
     for idx, row in enumerate(rows):
         try:
+            # Validate amount
+            amount = float(row['amount'])
+            if amount < 0:
+                raise ValueError("Amount cannot be negative")
+            
             # Parse and validate data
             transaction_doc = {
                 "company_id": company_id,
                 "transaction_id": row.get('transaction_id', f"TXN{idx:06d}"),
                 "timestamp": datetime.fromisoformat(row['date'].replace('Z', '+00:00')) if 'T' in row['date'] else datetime.strptime(row['date'], '%Y-%m-%d'),
-                "amount": float(row['amount']),
+                "amount": amount,
                 "currency": row.get('currency', 'USD'),
                 "transaction_type": row.get('type', 'TRANSFER'),
                 "channel": row.get('channel', 'ONLINE'),
